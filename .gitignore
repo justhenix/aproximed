@@ -1,0 +1,121 @@
+# Aproximed .gitignore
+# Vite React + Bun + Tailwind v4
+# Python FastAPI backend
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Frontend dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Bun
+.bun/
+bun-debug.log*
+*.bun-debug.log*
+
+# Frontend build output
+dist/
+dist-ssr/
+build/
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Test and coverage output
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.tox/
+.nox/
+.cache/
+
+# Python coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+nosetests.xml
+
+# Python packaging/build
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Local generated files
+outputs/
+generated/
+tmp/
+temp/
+*.tmp
+
+# Editor / IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swo
+*.swp
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
