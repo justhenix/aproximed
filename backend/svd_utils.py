@@ -3,9 +3,13 @@ from PIL import Image
 import io
 import base64
 
+# Image preprocessing: convert to grayscale and to numpy array
 def preprocess_image(image: Image.Image) -> np.ndarray:
-    raise NotImplementedError("preprocess_image not implemented yet")
+    grayscale_image = image.convert("L")
+    matrix = np.array(grayscale_image, dtype=np.float32)
+    return matrix
 
+# Image postprocessing: convert numpy array back to PIL Image
 def compress_matrix_svd(matrix: np.ndarray, rank: int) -> np.ndarray:
     raise NotImplementedError("compress_matrix_svd not implemented yet")
 
