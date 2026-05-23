@@ -30,8 +30,11 @@ def compress_matrix_svd(matrix: np.ndarray, rank: int) -> np.ndarray:
     
     return compressed_matrix.astype(np.float32)
 
+# Calculation for average of squared pixel errors (MSE)
 def calculate_mse(original: np.ndarray, compressed: np.ndarray) -> float:
-    raise NotImplementedError("calculate_mse not implemented yet")
+    diff = original.astype(np.float32) - compressed.astype(np.float32)
+    mse = np.mean(diff ** 2)
+    return float(mse)
 
 def calculate_psnr(mse: float, max_val: float = 255.0) -> float:
     raise NotImplementedError("calculate_psnr not implemented yet")
