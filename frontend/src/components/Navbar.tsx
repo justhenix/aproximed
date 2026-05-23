@@ -44,10 +44,15 @@ export const Navbar: React.FC = () => {
               <NavLink
                 key={link.name}
                 to={link.path}
+                onClick={() => {
+                  if (location.pathname === link.path) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
                 className={({ isActive: routerActive }) => `
-                  px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+                  px-4 py-2 rounded-full text-sm font-bold transition-all duration-300
                   ${(routerActive || isActive) 
-                    ? 'text-primary bg-primary/10 font-semibold' 
+                    ? 'text-primary bg-primary/10' 
                     : 'text-gray-600 hover:text-primary hover:bg-gray-100'}
                 `}
               >
@@ -60,7 +65,12 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center">
           <NavLink 
             to="/app"
-            className="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-[#0046CC] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
+            onClick={() => {
+              if (location.pathname === '/app') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-extrabold hover:bg-[#0046CC] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
           >
             Open App
           </NavLink>

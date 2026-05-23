@@ -1,12 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap");
 @import "tailwindcss";
 
 @theme {
   --color-primary: #0057FF;
   --color-secondary: #00B8FF;
+  --font-sans: "Nunito Sans", "Nunito", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
-  @apply bg-linear-to-b from-white to-[#f0f8ff] text-gray-900 min-h-screen antialiased;
+  @apply bg-linear-to-b from-white to-[#f0f8ff] text-gray-900 min-h-screen antialiased font-sans;
 }
 
 /* Glassmorphism Utilities */
