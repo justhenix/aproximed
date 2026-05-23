@@ -83,6 +83,7 @@ export const translations = {
     'single.selectImage': 'Select X-ray Image',
     'single.changeImage': 'Change Image',
     'single.errorSelectImage': 'Please select an image first.',
+    'single.errorNotImage': 'File isn\'t an image. Please upload a valid image file.',
     'single.compressing': 'Compressing...',
     'single.compressImage': 'Compress Image',
 
@@ -268,6 +269,7 @@ export const translations = {
     'single.selectImage': 'Pilih Gambar X-ray',
     'single.changeImage': 'Ganti Gambar',
     'single.errorSelectImage': 'Pilih gambar terlebih dahulu.',
+    'single.errorNotImage': 'File bukan berupa gambar. Harap unggah file gambar yang valid.',
     'single.compressing': 'Mengompresi...',
     'single.compressImage': 'Kompres Gambar',
 

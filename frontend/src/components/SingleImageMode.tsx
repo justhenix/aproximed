@@ -44,6 +44,11 @@ export const SingleImageMode: React.FC = () => {
   const { t } = useI18n();
 
   const handleImageSelect = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError(t('single.errorNotImage'));
+      return;
+    }
+
     setImageFile(file);
     setOriginalPreview(URL.createObjectURL(file));
     setOriginalFilename(file.name);

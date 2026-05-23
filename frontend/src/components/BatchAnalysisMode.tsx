@@ -29,14 +29,30 @@ export const BatchAnalysisMode: React.FC = () => {
   const { t, language } = useI18n();
 
   const handleFilesSelect = (files: FileList | File[]) => {
-    const newFiles = Array.from(files).map((file) => ({
+    const validFiles: File[] = [];
+    let hasInvalidFiles = false;
+
+    Array.from(files).forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        validFiles.push(file);
+      } else {
+        hasInvalidFiles = true;
+      }
+    });
+
+    if (hasInvalidFiles) {
+      setBatchError(t('single.errorNotImage'));
+    } else {
+      setBatchError(null);
+    }
+
+    const newFiles = validFiles.map((file) => ({
       id: Math.random().toString(36).substring(7),
       file,
       previewUrl: URL.createObjectURL(file),
       status: 'pending' as const,
     }));
     setBatchFiles((prev) => [...prev, ...newFiles]);
-    setBatchError(null);
   };
 
   const onDragOver = (e: React.DragEvent) => {
