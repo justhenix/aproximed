@@ -1,3 +1,4 @@
+# Written by Henix, 2026
 import numpy as np
 from PIL import Image
 import io
@@ -60,8 +61,29 @@ def calculate_compression_ratio(original_size: int, compressed_size: int) -> flo
         raise ValueError("compressed_size must be greater than 0")
     return float(original_size) / float(compressed_size)
 
+# Retained Energy = (sum of squares of retained singular values) / total energy.
+# In SVD image compression, this measures the % of total variance (information) 
+# preserved. Because the top singular values capture the most variance, keeping 
+# only the top 'rank' values tells us how much image data is retained vs. lost.
 def calculate_retained_energy(singular_values: np.ndarray, rank: int) -> float:
-    raise NotImplementedError("calculate_retained_energy not implemented yet")
+    if rank < 1:
+        raise ValueError("rank must be at least 1")
+    
+    if singular_values.size == 0:
+        raise ValueError("singular_values array cannot be empty")
+    
+    max_rank = singular_values.size
+    
+    if rank > max_rank:
+        rank = max_rank
+        
+    total_energy = np.sum(singular_values ** 2)
+    
+    if total_energy == 0:
+        return 0.0
+    
+    retained_energy = np.sum(singular_values[:rank] ** 2) / total_energy
+    return float(retained_energy)
 
 def calculate_recommended_rank(singular_values: np.ndarray, target_energy: float = 0.95) -> int:
     raise NotImplementedError("calculate_recommended_rank not implemented yet")
