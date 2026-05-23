@@ -4,12 +4,27 @@ import logo from '../assets/logo.svg';
 
 export const Footer: React.FC = () => {
   const location = useLocation();
+  const isApp = location.pathname === '/app';
 
   const handleLinkClick = (path: string) => {
     if (location.pathname === path) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  if (isApp) {
+    return (
+      <footer className="w-full bg-transparent py-6 text-center text-sm text-gray-400 font-sans mt-auto border-t border-gray-100 mt-12">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p>&copy; {new Date().getFullYear()} Aproximed. Kelompok 2</p>
+          <div className="flex gap-4 text-xs">
+            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+            <Link to="/docs" className="hover:text-primary transition-colors">Docs</Link>
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="relative w-full bg-[#0f172a] text-white flex flex-col items-center overflow-hidden z-10 font-sans">
