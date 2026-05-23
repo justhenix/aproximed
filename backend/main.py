@@ -57,15 +57,21 @@ async def compress_image(image: UploadFile = File(...), rank: int = Form(...)):
         mse = calculate_mse(matrix, compressed_matrix)
         psnr = calculate_psnr(mse)
         retained_energy = calculate_retained_energy(S, safe_rank)
-        recommended_rank = calculate_recommended_rank(S)
-        
+        # Use 99.9% energy threshold — more conservative for X-ray images than 95%
+        recommended_rank = calculate_recommended_rank(S, target_energy=0.999)
+
         # Convert compressed matrix to base64 PNG
         compressed_image_base64 = matrix_to_base64_png(compressed_matrix)
-        
-        # Get compressed size from base64 string
+
+        height, width = matrix.shape
+        # Theoretical SVD matrix storage ratio:
+        # original stores height*width values; rank-k SVD stores k*(height+width+1)
+        svd_compression_ratio = (height * width) / (safe_rank * (height + width + 1))
+
+        # Practical PNG output ratio: uploaded file bytes vs decoded compressed PNG bytes
         compressed_size = len(base64.b64decode(compressed_image_base64))
-        compression_ratio = calculate_compression_ratio(original_size, compressed_size)
-        
+        png_output_ratio = calculate_compression_ratio(original_size, compressed_size)
+
         return {
             "message": "compression successful",
             "filename": image.filename,
@@ -73,7 +79,9 @@ async def compress_image(image: UploadFile = File(...), rank: int = Form(...)):
             "recommended_rank": recommended_rank,
             "mse": mse,
             "psnr": psnr,
-            "compression_ratio": compression_ratio,
+            "svd_compression_ratio": svd_compression_ratio,
+            "png_output_ratio": png_output_ratio,
+            "compression_ratio": png_output_ratio,  # backward compat
             "retained_energy": retained_energy,
             "compressed_image_base64": compressed_image_base64
         }

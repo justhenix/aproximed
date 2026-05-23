@@ -10,7 +10,8 @@ export interface CompressionMetrics {
   recommended_rank: number;
   mse: number;
   psnr: number;
-  compression_ratio: number;
+  svd_compression_ratio: number;
+  png_output_ratio: number;
   retained_energy: number;
 }
 
@@ -77,7 +78,8 @@ function App() {
         recommended_rank: data.recommended_rank,
         mse: data.mse,
         psnr: data.psnr,
-        compression_ratio: data.compression_ratio,
+        svd_compression_ratio: data.svd_compression_ratio,
+        png_output_ratio: data.png_output_ratio,
         retained_energy: data.retained_energy,
       });
     } catch (err) {
