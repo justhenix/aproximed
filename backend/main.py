@@ -32,6 +32,26 @@ app.add_middleware(
 def health_check():
     return {"message": "Aproximed API is running"}
 
+@app.post("/analyze")
+async def analyze_image(image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+        img = Image.open(io.BytesIO(image_bytes))
+        matrix = preprocess_image(img)
+        
+        max_rank = min(matrix.shape)
+        # Compute SVD to get singular values
+        _, S, _ = np.linalg.svd(matrix, full_matrices=False)
+        recommended_rank = calculate_recommended_rank(S, target_energy=0.999)
+        
+        return {
+            "filename": image.filename,
+            "recommended_rank": recommended_rank,
+            "max_rank": max_rank
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.post("/compress")
 async def compress_image(image: UploadFile = File(...), rank: int = Form(...)):
     try:

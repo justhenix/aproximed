@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CompressionMetrics } from '../pages/AppPage';
+import type { CompressionMetrics } from './SingleImageMode';
 
 interface Props {
   metrics: CompressionMetrics | null;
