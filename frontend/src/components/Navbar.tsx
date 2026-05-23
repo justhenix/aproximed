@@ -22,19 +22,19 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <div 
-      className={`fixed top-0 left-0 right-0 z-50 flex justify-center transition-all duration-500 ${
-        isScrolled ? 'pt-4 px-4' : 'pt-0 px-0'
-      }`}
-    >
+    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-0 px-0 transition-all duration-500">
       <nav 
         className={`flex items-center justify-between w-full transition-all duration-500 ${
           isScrolled 
-            ? 'max-w-4xl mx-auto glass px-6 py-3 rounded-full' 
-            : 'max-w-6xl mx-auto bg-white/0 px-6 md:px-8 py-5 border border-white/0'
+            ? 'max-w-4xl mx-auto glass px-6 py-3 rounded-b-2xl border-x border-b' 
+            : 'max-w-6xl mx-auto bg-white/0 px-6 md:px-8 py-5 border border-transparent'
         }`}
       >
-        <NavLink to="/" className="flex items-center">
+        <NavLink to="/" onClick={() => {
+          if (location.pathname === '/') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }} className="flex items-center">
           <img src={logo} className="h-8 w-auto" alt="Aproximed" />
         </NavLink>
 
