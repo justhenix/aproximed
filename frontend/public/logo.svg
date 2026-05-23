@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 5051 1080" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1,0,0,1,-2534.244827,0)">
+        <g id="Main" transform="matrix(4.676208,0,0,1,2534.244827,0)">
+            <rect x="0" y="0" width="1080" height="1080" style="fill:none;"/>
+            <g transform="matrix(0.126831,0,0,0.722343,42.289368,70.885987)">
+                <path d="M948.276,913.146L514.563,226.259L-5.143,1063.17C-24.164,1093.801 -69.895,1105.99 -107.202,1090.373C-144.509,1074.755 -159.354,1037.207 -140.333,1006.576L413.798,114.228C432.995,83.314 471.63,63.807 513.892,63.689C556.154,63.572 594.949,82.864 614.401,113.67L1166.474,988.008L1166.482,988.021C1183.804,1015.471 1177.658,1048.955 1151.252,1070.993C1125.051,1092.861 1084.801,1098.538 1051.426,1085.242C878.173,1017.84 522.666,913.21 481.55,897.361C443.644,882.748 427.318,845.616 445.116,814.493C462.913,783.37 508.136,769.966 546.042,784.578C576.225,796.213 775.671,855.662 948.276,913.146Z" style="fill:rgb(0,103,255);"/>
+            </g>
+            <g transform="matrix(0.213848,0,0,1,-4.572726,-0)">
+                <g transform="matrix(883.333333,0,0,883.333333,4822.886022,847.409075)">
+                </g>
+                <text x="965.369px" y="847.409px" style="font-family:'Nunito-Bold', 'Nunito';font-weight:700;font-size:883.333px;fill:rgb(0,103,255);">pr<tspan x="1834.569px 2331.886px " y="847.409px 847.409px ">ox</tspan>imed</text>
+            </g>
+        </g>
+    </g>
+</svg>
