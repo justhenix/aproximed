@@ -11,7 +11,24 @@ def preprocess_image(image: Image.Image) -> np.ndarray:
 
 # Image postprocessing: convert numpy array back to PIL Image
 def compress_matrix_svd(matrix: np.ndarray, rank: int) -> np.ndarray:
-    raise NotImplementedError("compress_matrix_svd not implemented yet")
+    max_rank = min(matrix.shape)
+    
+    if rank < 1:
+        raise ValueError("rank must be at least 1")
+    
+    if rank > max_rank:
+        rank = max_rank
+        
+    U, S, Vt = np.linalg.svd(matrix, full_matrices=False)
+    
+    U_k = U[:, :rank]
+    S_k = S[:rank]
+    Vt_k = Vt[:rank, :]
+    
+    compressed_matrix = (U_k * S_k) @ Vt_k
+    compressed_matrix = np.clip(compressed_matrix, 0, 255)
+    
+    return compressed_matrix.astype(np.float32)
 
 def calculate_mse(original: np.ndarray, compressed: np.ndarray) -> float:
     raise NotImplementedError("calculate_mse not implemented yet")
