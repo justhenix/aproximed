@@ -1,4 +1,5 @@
 # Written by Henix, 2026
+
 import numpy as np
 from PIL import Image
 import io
@@ -85,8 +86,36 @@ def calculate_retained_energy(singular_values: np.ndarray, rank: int) -> float:
     retained_energy = np.sum(singular_values[:rank] ** 2) / total_energy
     return float(retained_energy)
 
+# Calculate the recommended rank based on the cumulative energy of singular values.
 def calculate_recommended_rank(singular_values: np.ndarray, target_energy: float = 0.95) -> int:
-    raise NotImplementedError("calculate_recommended_rank not implemented yet")
+    if singular_values.size == 0:
+        raise ValueError("singular_values array cannot be empty")
+    
+    if target_energy <= 0 or target_energy > 1:
+        raise ValueError("target_energy must between 0 and 1")
+    
+    energy = singular_values ** 2
+    total_energy = np.sum(energy)
+    
+    if total_energy == 0:
+        return 1
+    
+    cumulative_energy = np.cumsum(energy) / total_energy
+    recommended_rank = np.searchsorted(cumulative_energy, target_energy) + 1
+    
+    return int(recommended_rank)
 
+# Convert a numpy array (grayscale image) to a base64-encoded PNG string
 def matrix_to_base64_png(matrix: np.ndarray) -> str:
-    raise NotImplementedError("matrix_to_base64_png not implemented yet")
+    clipped_matrix = np.clip(matrix, 0, 255)
+    uint8_matrix = clipped_matrix.astype(np.uint8)
+    
+    image = Image.fromarray(uint8_matrix, mode="L")
+    # if complains with deprecation warning, use:
+    # image = Image.fromarray(uint8_matrix)
+    
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    
+    base64_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return base64_str
