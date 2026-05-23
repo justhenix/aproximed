@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.svg';
+import { useI18n } from '../i18n/I18nContext';
 
 export const Footer: React.FC = () => {
   const location = useLocation();
+  const { t } = useI18n();
   const isApp = location.pathname === '/app';
 
   const handleLinkClick = (path: string) => {
@@ -18,8 +20,8 @@ export const Footer: React.FC = () => {
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; {new Date().getFullYear()} Aproximed. Kelompok 2</p>
           <div className="flex gap-4 text-xs">
-            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-            <Link to="/docs" className="hover:text-primary transition-colors">Docs</Link>
+            <Link to="/" className="hover:text-primary transition-colors">{t('footer.home')}</Link>
+            <Link to="/docs" className="hover:text-primary transition-colors">{t('footer.docs')}</Link>
           </div>
         </div>
       </footer>
@@ -34,19 +36,19 @@ export const Footer: React.FC = () => {
           <img src={logo} className="h-10 md:h-12 w-auto brightness-0 invert" alt="Aproximed" />
         </Link>
         <p className="max-w-xl text-gray-400 text-base mb-8">
-          Exploring the boundaries of mathematical precision in medical image compression through Singular Value Decomposition.
+          {t('footer.description')}
         </p>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10 w-full max-w-2xl text-sm font-medium">
-          <Link to="/" onClick={() => handleLinkClick('/')} className="text-gray-400 hover:text-white transition-colors">Home</Link>
-          <Link to="/app" onClick={() => handleLinkClick('/app')} className="text-gray-400 hover:text-white transition-colors">Compression App</Link>
-          <Link to="/about" onClick={() => handleLinkClick('/about')} className="text-gray-400 hover:text-white transition-colors">About Project</Link>
-          <Link to="/docs" onClick={() => handleLinkClick('/docs')} className="text-gray-400 hover:text-white transition-colors">Documentation</Link>
+          <Link to="/" onClick={() => handleLinkClick('/')} className="text-gray-400 hover:text-white transition-colors">{t('footer.home')}</Link>
+          <Link to="/app" onClick={() => handleLinkClick('/app')} className="text-gray-400 hover:text-white transition-colors">{t('footer.app')}</Link>
+          <Link to="/about" onClick={() => handleLinkClick('/about')} className="text-gray-400 hover:text-white transition-colors">{t('footer.about')}</Link>
+          <Link to="/docs" onClick={() => handleLinkClick('/docs')} className="text-gray-400 hover:text-white transition-colors">{t('footer.docs')}</Link>
         </div>
 
         <div className="pt-6 border-t border-gray-800 w-full flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-4">
           <p>&copy; {new Date().getFullYear()} Aproximed. Kelompok 2</p>
-          <p>Built for educational purposes.</p>
+          <p>{t('footer.educational')}</p>
         </div>
       </div>
     </footer>

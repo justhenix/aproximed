@@ -1,13 +1,36 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Upload, SlidersHorizontal, Image as ImageIcon, Activity } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext';
 
 export const LandingPage: React.FC = () => {
+  const { t } = useI18n();
+
+  const previewXrayLabels = {
+    patientId: t('preview.dicomPatient'),
+    study: t('preview.dicomStudy'),
+    matrixDim: t('preview.dicomMatrix'),
+    format: t('preview.dicomFormat'),
+    originalTag: t('preview.originalTag'),
+    status: t('preview.dicomStatus')
+  };
+
+  const spectrumLabels = {
+    rankHeader: t('preview.rankChip'),
+    axisStart: t('preview.sparklineAxisZero'),
+    axisRank: t('preview.sparklineAxisRank'),
+    axisEnd: t('preview.sparklineAxisMax'),
+    matrixU: t('preview.svdU'),
+    matrixSigma: t('preview.svdSigma'),
+    matrixVt: t('preview.svdVt'),
+    matrixMultiply: t('preview.svdMultiply')
+  };
+
   return (
-    <div className="space-y-20 md:space-y-28 animate-in fade-in duration-700 font-sans">
+    <div className="flex flex-col gap-12 md:gap-16 lg:gap-20 animate-in fade-in duration-700 font-sans">
       
       {/* Hero Section with Matrix Grid Background */}
-      <section className="relative text-center pt-1 md:pt-3 pb-6">
+      <section className="relative flex flex-col items-center justify-center text-center py-12 md:py-16 lg:py-[10vh]">
         {/* Subtle Matrix Grid Background */}
         <div className="absolute inset-0 -z-10 opacity-40 mask-[radial-gradient(ellipse_at_center,white_80%,transparent)] pointer-events-none">
           <div className="absolute inset-0" style={{
@@ -18,15 +41,15 @@ export const LandingPage: React.FC = () => {
 
         {/* Headline */}
         <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter mb-6 leading-[0.98]">
-          SVD-Based <br className="hidden md:block"/> 
+          {t('landing.titleLine1')} <br className="hidden md:block"/> 
           <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-secondary">
-            X-Ray Image Compression
+            {t('landing.titleLine2')}
           </span>
         </h1>
 
         {/* Supporting text */}
         <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-600 mb-10 leading-relaxed font-semibold">
-          Explore how rank-k Singular Value Decomposition affects X-Ray image quality, compression ratio, and reconstruction metrics.
+          {t('landing.subtitle')}
         </p>
 
         {/* CTAs */}
@@ -35,18 +58,18 @@ export const LandingPage: React.FC = () => {
             to="/app" 
             className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-primary text-white font-extrabold hover:bg-[#0046CC] hover:shadow-[0_8px_24px_rgba(0,87,255,0.25)] hover:-translate-y-0.5 transition-all duration-300"
           >
-            Try Compression
+            {t('landing.tryCompression')}
           </Link>
           <Link 
             to="/docs" 
             className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-slate-700 font-extrabold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-xs transition-all duration-300"
           >
-            Read the Method
+            {t('landing.readMethod')}
           </Link>
         </div>
         
         <p className="mt-8 text-xs text-slate-400 font-mono">
-          Educational simulation tool. This prototype is for compression analysis only, not medical diagnosis.
+          {t('landing.disclaimer')}
         </p>
       </section>
 
@@ -57,42 +80,47 @@ export const LandingPage: React.FC = () => {
             <div>
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
-                Reconstruction Preview (Rank-k Truncation)
+                {t('preview.title')}
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">CASE: CHEST_PA_DEMO // MAT_DIM: 1024x1024</p>
+              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">{t('preview.caseInfo')}</p>
             </div>
             <div className="flex gap-2 font-mono">
-              <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-bold">k = 50</span>
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md font-bold">99.1% Energy</span>
+              <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-bold">{t('preview.rankChip')}</span>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md font-bold">{t('preview.retainedEnergy')}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             {/* Left Image Viewport */}
             <div className="flex flex-col items-center gap-2">
-              <span className="text-xs font-bold text-slate-500">Original X-Ray</span>
+              <span className="text-xs font-bold text-slate-500">{t('preview.original')}</span>
               <div className="aspect-square w-full max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 shadow-xs">
-                <ChestXRaySVG isOriginal={true} />
+                <ChestXRaySVG isOriginal={true} labels={previewXrayLabels} />
               </div>
             </div>
 
             {/* Middle Decay Graph */}
             <div className="flex flex-col items-center gap-2">
-              <span className="text-xs font-bold text-slate-500">Singular Value Decay</span>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className="text-xs font-bold text-slate-500">{t('preview.decomposition')}</span>
+                <span className="text-[10px] text-slate-400 font-semibold leading-tight hidden sm:block">
+                  {t('preview.decompositionCaption')}
+                </span>
+              </div>
               <div className="aspect-square w-full max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 p-3 flex flex-col justify-center shadow-xs">
-                <SpectrumDecompositionSVG />
+                <SpectrumDecompositionSVG labels={spectrumLabels} equation={t('preview.decompositionEquation')} />
               </div>
             </div>
 
             {/* Right Image Viewport */}
             <div className="flex flex-col items-center gap-2">
-              <span className="text-xs font-bold text-slate-500">Reconstructed (k=50)</span>
+              <span className="text-xs font-bold text-slate-500">{t('preview.reconstructed')}</span>
               <div className="aspect-square w-full max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 shadow-xs relative">
                 <div className="w-full h-full blur-[1px] contrast-[1.03]">
-                  <ChestXRaySVG isOriginal={false} />
+                  <ChestXRaySVG isOriginal={false} labels={previewXrayLabels} />
                 </div>
                 <div className="absolute bottom-2 right-2 text-[8px] bg-slate-900/90 border border-slate-800 px-1.5 py-0.5 rounded text-blue-400 font-bold font-mono">
-                  RECON
+                  {t('preview.reconTag')}
                 </div>
               </div>
             </div>
@@ -101,16 +129,16 @@ export const LandingPage: React.FC = () => {
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100 text-center font-sans">
             <div className="space-y-0.5">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Peak SNR</div>
-              <div className="text-sm font-extrabold text-slate-900">34.21 dB</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('preview.peakSnr')}</div>
+              <div className="text-sm font-extrabold text-slate-900">{t('preview.peakSnrValue')}</div>
             </div>
             <div className="space-y-0.5 border-x border-slate-100">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Similarity (SSIM)</div>
-              <div className="text-sm font-extrabold text-slate-900">0.9846</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('preview.ssim')}</div>
+              <div className="text-sm font-extrabold text-slate-900">{t('preview.ssimValue')}</div>
             </div>
             <div className="space-y-0.5">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Comp. Ratio</div>
-              <div className="text-sm font-extrabold text-slate-900">4.16x (76% Saved)</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('preview.compressionRatio')}</div>
+              <div className="text-sm font-extrabold text-slate-900">{t('preview.compressionRatioValue')}</div>
             </div>
           </div>
         </div>
@@ -120,23 +148,23 @@ export const LandingPage: React.FC = () => {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <FeatureCard 
           icon={<Upload className="w-6 h-6 text-primary" />}
-          title="Upload X-Ray"
-          description="Support for standard image formats used in radiography previews."
+          title={t('landing.features.uploadTitle')}
+          description={t('landing.features.uploadDesc')}
         />
         <FeatureCard 
           icon={<SlidersHorizontal className="w-6 h-6 text-primary" />}
-          title="Adjust Rank-k"
-          description="Control the exact number of singular values retained for compression."
+          title={t('landing.features.rankTitle')}
+          description={t('landing.features.rankDesc')}
         />
         <FeatureCard 
           icon={<ImageIcon className="w-6 h-6 text-primary" />}
-          title="Visual Compare"
-          description="Side-by-side comparison of original and reconstructed image quality."
+          title={t('landing.features.compareTitle')}
+          description={t('landing.features.compareDesc')}
         />
         <FeatureCard 
           icon={<Activity className="w-6 h-6 text-primary" />}
-          title="Read Metrics"
-          description="Analyze MSE, PSNR, SVD Energy, and actual PNG output ratios."
+          title={t('landing.features.metricsTitle')}
+          description={t('landing.features.metricsDesc')}
         />
       </section>
 
@@ -151,16 +179,16 @@ export const LandingPage: React.FC = () => {
         </div>
         
         <div className="relative z-10">
-          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center text-slate-900">How It Works</h2>
+          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center text-slate-900">{t('landing.howItWorks')}</h2>
           
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <FlowStep number="1" title="Image Matrix" desc="Image loaded as an m × n matrix" />
+            <FlowStep number="1" title={t('landing.flow.step1.title')} desc={t('landing.flow.step1.desc')} />
             <FlowArrow />
-            <FlowStep number="2" title="SVD" desc="Factored into U, Σ, Vᵀ" />
+            <FlowStep number="2" title={t('landing.flow.step2.title')} desc={t('landing.flow.step2.desc')} />
             <FlowArrow />
-            <FlowStep number="3" title="Rank-k" desc="Truncated to top k singular values" />
+            <FlowStep number="3" title={t('landing.flow.step3.title')} desc={t('landing.flow.step3.desc')} />
             <FlowArrow />
-            <FlowStep number="4" title="Metrics" desc="Reconstructed and analyzed" />
+            <FlowStep number="4" title={t('landing.flow.step4.title')} desc={t('landing.flow.step4.desc')} />
           </div>
         </div>
       </section>
@@ -197,16 +225,39 @@ const FlowArrow = () => (
   </div>
 );
 
-const ChestXRaySVG: React.FC<{ isOriginal?: boolean }> = ({ isOriginal = false }) => (
+type XrayLabels = {
+  patientId: string;
+  study: string;
+  matrixDim: string;
+  format: string;
+  originalTag: string;
+  status: string;
+};
+
+type SpectrumLabels = {
+  rankHeader: string;
+  axisStart: string;
+  axisRank: string;
+  axisEnd: string;
+  matrixU: string;
+  matrixSigma: string;
+  matrixVt: string;
+  matrixMultiply: string;
+};
+
+const ChestXRaySVG: React.FC<{ isOriginal?: boolean; labels: XrayLabels }> = ({
+  isOriginal = false,
+  labels
+}) => (
   <svg className="w-full h-full bg-slate-950 text-slate-400 p-2.5 font-mono text-[9px] select-none" viewBox="0 0 200 200">
     {/* Dark background is default. Add grid lines / crosshair */}
     <path d="M 10 100 H 190 M 100 10 V 190" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="3,3" />
     
     {/* DICOM Info overlay */}
-    <text x="10" y="16" fill="rgba(255,255,255,0.4)" fontSize="7" fontWeight="bold">PATIENT_ID: APRX-998</text>
-    <text x="10" y="24" fill="rgba(255,255,255,0.3)" fontSize="6">STUDY: CHEST_PA // SVD_SIMULATION</text>
-    <text x="150" y="16" fill="rgba(255,255,255,0.3)" fontSize="6">1024x1024</text>
-    <text x="150" y="24" fill="rgba(255,255,255,0.3)" fontSize="6">MONO_16BIT</text>
+    <text x="10" y="16" fill="rgba(255,255,255,0.4)" fontSize="7" fontWeight="bold">{labels.patientId}</text>
+    <text x="10" y="24" fill="rgba(255,255,255,0.3)" fontSize="6">{labels.study}</text>
+    <text x="150" y="16" fill="rgba(255,255,255,0.3)" fontSize="6">{labels.matrixDim}</text>
+    <text x="150" y="24" fill="rgba(255,255,255,0.3)" fontSize="6">{labels.format}</text>
     
     {/* Spine (vertebrae representation) */}
     <rect x="96" y="32" width="8" height="132" rx="2" fill="rgba(255,255,255,0.12)" />
@@ -253,21 +304,30 @@ const ChestXRaySVG: React.FC<{ isOriginal?: boolean }> = ({ isOriginal = false }
 
     {/* Label indicator */}
     {isOriginal && (
-      <text x="145" y="188" fill="#0057FF" fontSize="7.5" fontWeight="bold" letterSpacing="0.5">ORIGINAL</text>
+      <text x="145" y="188" fill="#0057FF" fontSize="7.5" fontWeight="bold" letterSpacing="0.5">{labels.originalTag}</text>
     )}
     
     {/* Status Overlay */}
-    <text x="10" y="188" fill="rgba(255,255,255,0.25)" fontSize="6">DICOM RECON // SCAN_PA_12</text>
+    <text x="10" y="188" fill="rgba(255,255,255,0.25)" fontSize="6">{labels.status}</text>
   </svg>
 );
 
-const SpectrumDecompositionSVG: React.FC = () => (
+const SpectrumDecompositionSVG: React.FC<{ labels: SpectrumLabels; equation?: string }> = ({
+  labels,
+  equation
+}) => (
   <div className="w-full h-full bg-slate-950 text-slate-300 p-2 font-mono text-[8px] flex flex-col justify-between select-none">
-    <div className="text-center font-bold text-blue-400 border-b border-slate-900 pb-1">k = 50</div>
+    <div className="space-y-1">
+      <div className="text-center font-bold text-blue-400 border-b border-slate-900 pb-1">{labels.rankHeader}</div>
+      {equation && (
+        <div className="text-center text-[9px] text-slate-400 font-semibold">
+          {equation}
+        </div>
+      )}
 
-    {/* Sparkline Decay Curve */}
-    <div className="h-16 my-1 relative">
-      <svg className="w-full h-full text-slate-500" viewBox="0 0 160 80" fill="none">
+      {/* Sparkline Decay Curve */}
+      <div className="h-16 my-1 relative">
+        <svg className="w-full h-full text-slate-500 opacity-80" viewBox="0 0 160 80" fill="none">
         {/* Horizontal grid lines */}
         <line x1="15" y1="70" x2="150" y2="70" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
         <line x1="15" y1="40" x2="150" y2="40" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="2,2" />
@@ -287,24 +347,25 @@ const SpectrumDecompositionSVG: React.FC = () => (
         <circle cx="55" cy="65.5" r="3" fill="#00B8FF" />
         
         {/* Axes labels */}
-        <text x="12" y="77" fill="rgba(255,255,255,0.3)" fontSize="6">0</text>
-        <text x="50" y="77" fill="#00B8FF" fontSize="6">k=50</text>
-        <text x="142" y="77" fill="rgba(255,255,255,0.3)" fontSize="6">1024</text>
-      </svg>
+        <text x="12" y="77" fill="rgba(255,255,255,0.3)" fontSize="6">{labels.axisStart}</text>
+        <text x="50" y="77" fill="#00B8FF" fontSize="6">{labels.axisRank}</text>
+        <text x="142" y="77" fill="rgba(255,255,255,0.3)" fontSize="6">{labels.axisEnd}</text>
+        </svg>
+      </div>
     </div>
 
     {/* Matrix blocks visually */}
     <div className="border-t border-slate-900 pt-1.5 flex items-center justify-between text-center px-1">
       <div className="flex flex-col items-center">
-        <div className="w-7 h-5 rounded border border-slate-800 bg-slate-900/60 flex items-center justify-center font-bold text-[7px] text-slate-400">U</div>
+        <div className="w-7 h-5 rounded border border-slate-800 bg-slate-900/60 flex items-center justify-center font-bold text-[7px] text-slate-400">{labels.matrixU}</div>
       </div>
-      <span className="text-slate-650 font-bold text-[7px] select-none">×</span>
+      <span className="text-slate-650 font-bold text-[7px] select-none">{labels.matrixMultiply}</span>
       <div className="flex flex-col items-center">
-        <div className="w-7 h-5 rounded border border-blue-900/40 bg-blue-950/20 flex items-center justify-center font-bold text-[7px] text-blue-400">Σ</div>
+        <div className="w-7 h-5 rounded border border-blue-900/40 bg-blue-950/20 flex items-center justify-center font-bold text-[7px] text-blue-400">{labels.matrixSigma}</div>
       </div>
-      <span className="text-slate-650 font-bold text-[7px] select-none">×</span>
+      <span className="text-slate-650 font-bold text-[7px] select-none">{labels.matrixMultiply}</span>
       <div className="flex flex-col items-center">
-        <div className="w-7 h-5 rounded border border-slate-800 bg-slate-900/60 flex items-center justify-center font-bold text-[7px] text-slate-400">Vᵀ</div>
+        <div className="w-7 h-5 rounded border border-slate-800 bg-slate-900/60 flex items-center justify-center font-bold text-[7px] text-slate-400">{labels.matrixVt}</div>
       </div>
     </div>
   </div>
