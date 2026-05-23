@@ -1,6 +1,21 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import io
+import base64
+from PIL import Image
+import numpy as np
+
+from svd_utils import (
+    preprocess_image,
+    compress_matrix_svd,
+    calculate_mse,
+    calculate_psnr,
+    calculate_compression_ratio,
+    calculate_retained_energy,
+    calculate_recommended_rank,
+    matrix_to_base64_png
+)
 
 app = FastAPI(title="Aproximed API")
 
@@ -19,12 +34,51 @@ def health_check():
 
 @app.post("/compress")
 async def compress_image(image: UploadFile = File(...), rank: int = Form(...)):
-    # Placeholder for SVD logic
-    return {
-        "message": "compress endpoint scaffold ready",
-        "filename": image.filename,
-        "rank": rank
-    }
+    try:
+        # Read image bytes and get original size
+        image_bytes = await image.read()
+        original_size = len(image_bytes)
+        
+        # Open image and preprocess
+        img = Image.open(io.BytesIO(image_bytes))
+        matrix = preprocess_image(img)
+        
+        # Clamp rank safely
+        max_rank = min(matrix.shape)
+        safe_rank = max(1, min(rank, max_rank))
+        
+        # Compress matrix
+        compressed_matrix = compress_matrix_svd(matrix, safe_rank)
+        
+        # Compute SVD singular values for metrics
+        U, S, Vt = np.linalg.svd(matrix, full_matrices=False)
+        
+        # Compute metrics
+        mse = calculate_mse(matrix, compressed_matrix)
+        psnr = calculate_psnr(mse)
+        retained_energy = calculate_retained_energy(S, safe_rank)
+        recommended_rank = calculate_recommended_rank(S)
+        
+        # Convert compressed matrix to base64 PNG
+        compressed_image_base64 = matrix_to_base64_png(compressed_matrix)
+        
+        # Get compressed size from base64 string
+        compressed_size = len(base64.b64decode(compressed_image_base64))
+        compression_ratio = calculate_compression_ratio(original_size, compressed_size)
+        
+        return {
+            "message": "compression successful",
+            "filename": image.filename,
+            "rank": safe_rank,
+            "recommended_rank": recommended_rank,
+            "mse": mse,
+            "psnr": psnr,
+            "compression_ratio": compression_ratio,
+            "retained_energy": retained_energy,
+            "compressed_image_base64": compressed_image_base64
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

@@ -1,5 +1,3 @@
-# Written by Henix, 2026
-
 import numpy as np
 from PIL import Image
 import io
