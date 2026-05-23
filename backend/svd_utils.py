@@ -56,7 +56,9 @@ def calculate_psnr(mse: float, max_val: float = 255.0) -> float:
 
 # Calculation for compression ratio: original size divided by compressed size
 def calculate_compression_ratio(original_size: int, compressed_size: int) -> float:
-    raise NotImplementedError("calculate_compression_ratio not implemented yet")
+    if compressed_size <= 0:
+        raise ValueError("compressed_size must be greater than 0")
+    return float(original_size) / float(compressed_size)
 
 def calculate_retained_energy(singular_values: np.ndarray, rank: int) -> float:
     raise NotImplementedError("calculate_retained_energy not implemented yet")
