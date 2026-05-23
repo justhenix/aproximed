@@ -1,9 +1,40 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #aa3bff;
+  --color-primary: #0057FF;
+  --color-secondary: #00B8FF;
 }
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-linear-to-b from-white to-[#f0f8ff] text-gray-900 min-h-screen antialiased;
+}
+
+/* Glassmorphism Utilities */
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-2xl;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-lg border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl transition-all duration-300;
+  }
+  
+  .glass-card:hover {
+    @apply shadow-[0_8px_30px_rgb(0,0,0,0.08)] transform -translate-y-1;
+  }
+}
+
+/* Custom Scrollbar for better look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
