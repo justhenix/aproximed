@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import logo from '../assets/logo.svg';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -34,7 +35,7 @@ export const Navbar: React.FC = () => {
         }`}
       >
         <NavLink to="/" className="flex items-center">
-          <img src="/logo.svg" className="h-8 w-auto" alt="Aproximed" />
+          <img src={logo} className="h-8 w-auto" alt="Aproximed" />
         </NavLink>
 
         <div className="hidden md:flex items-center gap-1">

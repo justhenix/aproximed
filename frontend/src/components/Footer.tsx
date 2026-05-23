@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import logo from '../assets/logo.svg';
 
 export const Footer: React.FC = () => {
   const location = useLocation();
@@ -15,7 +16,7 @@ export const Footer: React.FC = () => {
 
       <div className="relative z-10 max-w-6xl mx-auto w-full px-6 py-12 md:py-16 flex flex-col items-center text-center">
         <Link to="/" onClick={() => handleLinkClick('/')} className="mb-4 block">
-          <img src="/logo.svg" className="h-10 md:h-12 w-auto brightness-0 invert" alt="Aproximed" />
+          <img src={logo} className="h-10 md:h-12 w-auto brightness-0 invert" alt="Aproximed" />
         </Link>
         <p className="max-w-xl text-gray-400 text-base mb-8">
           Exploring the boundaries of mathematical precision in medical image compression through Singular Value Decomposition.
