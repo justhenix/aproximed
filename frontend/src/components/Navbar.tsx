@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.svg';
+import { useI18n } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { t, language, setLanguage } = useI18n();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -14,11 +17,11 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'App', path: '/app' },
-    { name: 'About', path: '/about' },
-    { name: 'Docs', path: '/docs' },
+  const navLinks: { key: TranslationKey; path: string }[] = [
+    { key: 'nav.home', path: '/' },
+    { key: 'nav.app', path: '/app' },
+    { key: 'nav.about', path: '/about' },
+    { key: 'nav.docs', path: '/docs' },
   ];
 
   return (
@@ -43,7 +46,7 @@ export const Navbar: React.FC = () => {
             const isActive = location.pathname === link.path || (link.path !== '/' && location.pathname.startsWith(link.path));
             return (
               <NavLink
-                key={link.name}
+                key={link.key}
                 to={link.path}
                 onClick={() => {
                   if (location.pathname === link.path) {
@@ -57,13 +60,31 @@ export const Navbar: React.FC = () => {
                     : 'text-gray-600 hover:text-primary hover:bg-gray-100'}
                 `}
               >
-                {link.name}
+                {t(link.key)}
               </NavLink>
             );
           })}
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-gray-100 rounded-full p-1 text-xs font-bold">
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-3 py-1 rounded-full transition-colors ${
+                language === 'en' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLanguage('id')}
+              className={`px-3 py-1 rounded-full transition-colors ${
+                language === 'id' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              ID
+            </button>
+          </div>
           <NavLink 
             to="/app"
             onClick={() => {
@@ -73,7 +94,7 @@ export const Navbar: React.FC = () => {
             }}
             className="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-extrabold hover:bg-[#0046CC] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
           >
-            Open App
+            {t('nav.openApp')}
           </NavLink>
         </div>
       </nav>

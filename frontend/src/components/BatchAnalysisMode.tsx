@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import type { CompressionResponse } from '../types/compression';
+import { useI18n } from '../i18n/I18nContext';
 
 export interface BatchFileStatus {
   id: string;
@@ -25,6 +26,7 @@ export const BatchAnalysisMode: React.FC = () => {
   const [batchError, setBatchError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t, language } = useI18n();
 
   const handleFilesSelect = (files: FileList | File[]) => {
     const newFiles = Array.from(files).map((file) => ({
@@ -41,12 +43,12 @@ export const BatchAnalysisMode: React.FC = () => {
     e.preventDefault();
     setIsDragging(true);
   };
-  
+
   const onDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
   };
-  
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -118,7 +120,7 @@ export const BatchAnalysisMode: React.FC = () => {
 
   const downloadCSV = () => {
     const headers = ["file_name", "status", "rank_used", "recommended_rank", "svd_energy_retained", "svd_matrix_ratio", "png_output_ratio", "mse", "psnr", "error"];
-    
+
     const rows = batchFiles.map(f => {
       return [
         `"${f.file.name}"`,
@@ -126,8 +128,8 @@ export const BatchAnalysisMode: React.FC = () => {
         f.metrics?.rank || batchRank,
         f.metrics?.recommended_rank || "",
         f.metrics?.retained_energy ? (f.metrics.retained_energy * 100).toFixed(2) + '%' : "",
-        f.metrics?.svd_compression_ratio ? (f.metrics.svd_compression_ratio * 100).toFixed(2) + '%' : "",
-        f.metrics?.png_output_ratio ? (f.metrics.png_output_ratio * 100).toFixed(2) + '%' : "",
+        f.metrics?.svd_compression_ratio ? f.metrics.svd_compression_ratio.toFixed(2) + 'x' : "",       
+        f.metrics?.png_output_ratio ? f.metrics.png_output_ratio.toFixed(2) + 'x' : "",
         f.metrics?.mse?.toFixed(4) || "",
         f.metrics?.psnr?.toFixed(2) || "",
         `"${f.error || ""}"`
@@ -147,23 +149,23 @@ export const BatchAnalysisMode: React.FC = () => {
 
   const successfulCount = batchFiles.filter(f => f.status === 'done').length;
   const failedCount = batchFiles.filter(f => f.status === 'failed').length;
-  
-  const avgPsnr = successfulCount > 0 
-    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.psnr || 0), 0) / successfulCount).toFixed(2) 
+
+  const avgPsnr = successfulCount > 0
+    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.psnr || 0), 0) / successfulCount).toFixed(2)
     : 0;
-  const avgMse = successfulCount > 0 
-    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.mse || 0), 0) / successfulCount).toFixed(4) 
+  const avgMse = successfulCount > 0
+    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.mse || 0), 0) / successfulCount).toFixed(4)
     : 0;
   const avgEnergy = successfulCount > 0
     ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.retained_energy || 0), 0) / successfulCount * 100).toFixed(2)
     : 0;
   const avgRatio = successfulCount > 0
-    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.png_output_ratio || 0), 0) / successfulCount * 100).toFixed(2)
+    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.png_output_ratio || 0), 0) / successfulCount).toFixed(2)
     : 0;
 
   return (
     <div className="w-full flex flex-col items-center space-y-8 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-      
+
       {batchError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-sm text-sm flex items-center gap-3 w-full max-w-3xl">
           <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -175,7 +177,7 @@ export const BatchAnalysisMode: React.FC = () => {
 
       {/* Upload Area */}
       <div className="w-full max-w-4xl">
-        <div 
+        <div
           className={`border-2 border-dashed rounded-2xl p-8 text-center bg-white cursor-pointer transition-all duration-200 flex flex-col items-center justify-center ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}`}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={onDragOver}
@@ -188,13 +190,13 @@ export const BatchAnalysisMode: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
             </div>
-            <p className="text-lg font-bold text-gray-800">Add multiple images for batch analysis</p>
-            <p className="text-sm mt-1">PNG, JPG up to 10MB per file</p>
+            <p className="text-lg font-bold text-gray-800">{t('batch.uploadTitle')}</p>
+            <p className="text-sm mt-1">{t('batch.uploadSubtitle')}</p>
           </div>
-          <input 
-            type="file" 
-            className="hidden" 
-            accept="image/*" 
+          <input
+            type="file"
+            className="hidden"
+            accept="image/*"
             multiple
             ref={fileInputRef}
             onChange={(e) => {
@@ -209,32 +211,32 @@ export const BatchAnalysisMode: React.FC = () => {
 
       {batchFiles.length > 0 && (
         <div className="w-full max-w-6xl space-y-6">
-          
+
           <div className="glass-card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white/80">
-            <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center mb-6">
+            <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center mb-6">  
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Batch Settings</h3>
-                <p className="text-sm text-gray-500 mt-1">Select a shared rank-k for all {batchFiles.length} images.</p>
+                <h3 className="text-lg font-semibold text-gray-900">{t('batch.settingsTitle')}</h3>
+                <p className="text-sm text-gray-500 mt-1">{t('batch.settingsDesc')}</p>
               </div>
               <div className="flex items-center gap-4 w-full md:w-auto">
                 <div className="flex-1 md:w-48">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Rank k = {batchRank}</label>
-                  <input 
-                    type="range" 
-                    min={1} 
-                    max={200} 
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Rank k = {batchRank}</label>  
+                  <input
+                    type="range"
+                    min={1}
+                    max={200}
                     value={batchRank}
                     onChange={(e) => setBatchRank(Number(e.target.value))}
                     disabled={isProcessing}
                     className="w-full"
                   />
                 </div>
-                <button 
+                <button
                   onClick={runBatch}
                   disabled={isProcessing || batchFiles.length === 0}
                   className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  {isProcessing ? 'Processing...' : 'Run Batch Analysis'}
+                  {isProcessing ? t('batch.processing') : t('batch.run')}
                 </button>
               </div>
             </div>
@@ -242,41 +244,41 @@ export const BatchAnalysisMode: React.FC = () => {
             <div className="flex items-center justify-between py-4 border-t border-gray-100">
               <div className="flex gap-4 text-sm flex-wrap items-center">
                 <div className="bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
-                  <span className="text-gray-500">Total:</span> <span className="font-semibold text-gray-900">{batchFiles.length}</span>
+                  <span className="text-gray-500">{t('batch.total')}:</span> <span className="font-semibold text-gray-900">{batchFiles.length}</span>
                 </div>
-                <div className="bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 text-green-700">
-                  <span>Success:</span> <span className="font-semibold">{successfulCount}</span>
+                <div className="bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 text-green-700">     
+                  <span>{t('batch.success')}:</span> <span className="font-semibold">{successfulCount}</span>
                 </div>
                 {failedCount > 0 && (
                   <div className="bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 text-red-700">
-                    <span>Failed:</span> <span className="font-semibold">{failedCount}</span>
+                    <span>{t('batch.failed')}:</span> <span className="font-semibold">{failedCount}</span>
                   </div>
                 )}
                 {successfulCount > 0 && (
                   <div className="flex gap-2">
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">
-                      <span>Avg PSNR:</span> <span className="font-semibold">{avgPsnr} dB</span>
+                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
+                      <span>{t('batch.avgPsnr')}:</span> <span className="font-semibold">{avgPsnr} dB</span>
                     </div>
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">
-                      <span>Avg MSE:</span> <span className="font-semibold">{avgMse}</span>
+                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
+                      <span>{t('batch.avgMse')}:</span> <span className="font-semibold">{avgMse}</span>
                     </div>
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">
-                      <span>Avg Energy:</span> <span className="font-semibold">{avgEnergy}%</span>
+                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
+                      <span>{t('batch.avgEnergy')}:</span> <span className="font-semibold">{avgEnergy}%</span>
                     </div>
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">
-                      <span>Avg Ratio:</span> <span className="font-semibold">{avgRatio}%</span>
+                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
+                      <span>{t('batch.avgRatio')}:</span> <span className="font-semibold">{avgRatio}x</span>
                     </div>
                   </div>
                 )}
               </div>
-              
+
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={clearQueue}
                   disabled={isProcessing}
                   className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  Clear Queue
+                  {t('batch.clearQueue')}
                 </button>
                 {successfulCount > 0 && (
                   <button 
@@ -286,25 +288,25 @@ export const BatchAnalysisMode: React.FC = () => {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Export CSV
+                    {t('batch.exportCsv')}
                   </button>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="glass-card border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden">
+          <div className="glass-card border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden">    
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-gray-500 bg-gray-50 uppercase border-b border-gray-100">
                   <tr>
-                    <th className="px-4 py-3 font-medium">File</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium text-right">Size</th>
-                    <th className="px-4 py-3 font-medium text-right">PSNR</th>
-                    <th className="px-4 py-3 font-medium text-right">MSE</th>
-                    <th className="px-4 py-3 font-medium text-right">Energy</th>
-                    <th className="px-4 py-3 font-medium text-center">Actions</th>
+                    <th className="px-4 py-3 font-medium">{t('batch.table.file')}</th>
+                    <th className="px-4 py-3 font-medium">{t('batch.table.status')}</th>
+                    <th className="px-4 py-3 font-medium text-right">{language === 'id' ? 'Ukuran' : 'Size'}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t('batch.table.psnr')}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t('batch.table.mse')}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t('batch.table.energy')}</th>
+                    <th className="px-4 py-3 font-medium text-center">{language === 'id' ? 'Aksi' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -315,16 +317,16 @@ export const BatchAnalysisMode: React.FC = () => {
                           <div className="w-10 h-10 rounded-md bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
                             <img src={fileStatus.previewUrl} alt="preview" className="w-full h-full object-cover" />
                           </div>
-                          <span className="truncate max-w-[150px]" title={fileStatus.file.name}>
+                          <span className="truncate max-w-37.5" title={fileStatus.file.name}>
                             {fileStatus.file.name}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        {fileStatus.status === 'pending' && <span className="text-gray-500">Pending</span>}
-                        {fileStatus.status === 'processing' && <span className="text-blue-500 flex items-center gap-1"><span className="animate-pulse">●</span> Processing</span>}
-                        {fileStatus.status === 'done' && <span className="text-green-600">Complete</span>}
-                        {fileStatus.status === 'failed' && <span className="text-red-500" title={fileStatus.error}>Failed</span>}
+                        {fileStatus.status === 'pending' && <span className="text-gray-500">{t('batch.status.pending')}</span>}     
+                        {fileStatus.status === 'processing' && <span className="text-blue-500 flex items-center gap-1"><span className="animate-pulse">●</span> {t('batch.status.processing')}</span>}
+                        {fileStatus.status === 'done' && <span className="text-green-600">{t('batch.status.done')}</span>}      
+                        {fileStatus.status === 'failed' && <span className="text-red-500" title={fileStatus.error}>{t('batch.status.failed')}</span>}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
                         {formatFileSize(fileStatus.file.size)}
@@ -339,10 +341,10 @@ export const BatchAnalysisMode: React.FC = () => {
                         {fileStatus.metrics?.retained_energy ? `${(fileStatus.metrics.retained_energy * 100).toFixed(1)}%` : '-'}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button 
+                        <button
                           onClick={() => removeFile(fileStatus.id)}
                           disabled={isProcessing}
-                          className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                          className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"    
                           title="Remove file"
                         >
                           <svg className="w-5 h-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -356,7 +358,7 @@ export const BatchAnalysisMode: React.FC = () => {
               </table>
             </div>
           </div>
-          
+
         </div>
       )}
     </div>
