@@ -595,6 +595,8 @@ async def compress_image(image: UploadFile = File(...), rank: int = Form(...)) -
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+# Deprecated: legacy CSV+ZIP input flow. Use /batch/images.
+# TODO: Remove legacy /batch/compress after one stable production deployment. New flow uses /batch/images.
 @app.post("/batch/compress")
 async def compress_batch_images(
     csv_file: UploadFile = File(...),

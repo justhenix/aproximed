@@ -47,6 +47,11 @@ Upload endpoints already use `multipart/form-data`:
 - `POST /analyze`
 - `POST /compress`
 
+Batch endpoints:
+
+- `POST /batch/images` (active; direct image upload, returns CSV/ZIP outputs)
+- `POST /batch/compress` (legacy/deprecated; CSV+ZIP input flow)
+
 ## Required Deploy Order
 
 1. Deploy backend project and copy URL.
