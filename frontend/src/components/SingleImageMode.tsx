@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { RankControls } from './RankControls';
+import { RankControls, type PresetKey } from './RankControls';
 import { ImageCompare, type CompareImageMeta } from './ImageCompare';
 import { MetricsPanel } from './MetricsPanel';
 import { analyzeImage, compressImage } from '../lib/api';
@@ -46,6 +46,8 @@ export const SingleImageMode: React.FC = () => {
 
   const [rank, setRank] = useState<number>(50);
   const [recommendedRank, setRecommendedRank] = useState<number | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
+  const [isGrayscale, setIsGrayscale] = useState<boolean>(false);
   const [maxRank, setMaxRank] = useState<number>(200);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
 
@@ -58,6 +60,7 @@ export const SingleImageMode: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
+  const isBusy = loading || isAnalyzing;
 
   const clearSelection = () => {
     if (originalPreview) {
@@ -67,11 +70,19 @@ export const SingleImageMode: React.FC = () => {
     setOriginalPreview(null);
     setOriginalFilename('');
     setOriginalMeta(null);
+    setRank(50);
     setCompressedImage(null);
     setCompressionResult(null);
+    setRecommendedRank(null);
+    setSelectedPreset(null);
+    setIsGrayscale(false);
+    setMaxRank(200);
+    setError(null);
   };
 
   const handleImageSelect = async (file: File) => {
+    if (isBusy) return;
+
     if (!file.type.startsWith('image/')) {
       setError(t('single.errorNotImage'));
       return;
@@ -89,27 +100,37 @@ export const SingleImageMode: React.FC = () => {
       sizeBytes: file.size,
       format: detectFileFormat(file),
     });
+    setRank(50);
     setCompressedImage(null);
     setCompressionResult(null);
     setError(null);
     setRecommendedRank(null);
+    setSelectedPreset(null);
+    setIsGrayscale(false);
     setMaxRank(200);
+    setIsAnalyzing(true);
 
     const dims = await readImageDimensions(file);
     if (dims) {
+      const inferredMaxRank = Math.max(1, Math.min(dims.width, dims.height));
       setOriginalMeta((prev) => ({
         ...(prev || {}),
         width: dims.width,
         height: dims.height,
       }));
+      setMaxRank(inferredMaxRank);
+      setRank((current) => Math.min(current, inferredMaxRank));
     }
 
-    setIsAnalyzing(true);
     try {
       const data = await analyzeImage(file);
       setRecommendedRank(data.recommended_rank);
-      if (data.max_rank) setMaxRank(data.max_rank);
+      setIsGrayscale(data.is_grayscale ?? false);
+      if (typeof data.max_rank === 'number' && data.max_rank > 0) {
+        setMaxRank(data.max_rank);
+      }
       setRank(data.recommended_rank);
+      setSelectedPreset('recommended');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image analysis failed');
     } finally {
@@ -118,16 +139,19 @@ export const SingleImageMode: React.FC = () => {
   };
 
   const onDragOver = (e: React.DragEvent) => {
+    if (isBusy) return;
     e.preventDefault();
     setIsDragging(true);
   };
 
   const onDragLeave = (e: React.DragEvent) => {
+    if (isBusy) return;
     e.preventDefault();
     setIsDragging(false);
   };
 
   const onDrop = (e: React.DragEvent) => {
+    if (isBusy) return;
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -136,10 +160,7 @@ export const SingleImageMode: React.FC = () => {
   };
 
   const handleCompress = async () => {
-    if (!imageFile) {
-      setError(t('single.errorSelectImage'));
-      return;
-    }
+    if (!imageFile || isBusy) return;
 
     setLoading(true);
     setError(null);
@@ -194,7 +215,9 @@ export const SingleImageMode: React.FC = () => {
         <div className="w-full max-w-3xl">
           <div
             className={`border-2 border-dashed rounded-2xl p-12 text-center bg-white cursor-pointer transition-all duration-200 flex flex-col items-center justify-center min-h-75 ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}`}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (!isBusy) fileInputRef.current?.click();
+            }}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
@@ -213,13 +236,18 @@ export const SingleImageMode: React.FC = () => {
               className="hidden"
               accept="image/*"
               ref={fileInputRef}
+              disabled={isBusy}
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) {
                   handleImageSelect(e.target.files[0]);
                 }
               }}
             />
-            <button className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm hover:shadow-md">
+            <button
+              type="button"
+              disabled={isBusy}
+              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {t('single.selectImage')}
             </button>
           </div>
@@ -240,7 +268,8 @@ export const SingleImageMode: React.FC = () => {
 
               <button
                 onClick={clearSelection}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors shrink-0"
+                disabled={isBusy}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('single.changeImage')}
               </button>
@@ -248,11 +277,20 @@ export const SingleImageMode: React.FC = () => {
 
             <RankControls
               rank={rank}
-              onRankChange={setRank}
+              onRankChange={(nextRank) => {
+                setSelectedPreset(null);
+                setRank(nextRank);
+              }}
+              onPresetSelect={(preset, nextRank) => {
+                setSelectedPreset(preset);
+                setRank(nextRank);
+              }}
               onCompress={handleCompress}
               loading={loading}
               disabled={!imageFile}
               recommendedRank={recommendedRank}
+              selectedPreset={selectedPreset}
+              isGrayscale={isGrayscale}
               maxRank={maxRank}
               isAnalyzing={isAnalyzing}
             />

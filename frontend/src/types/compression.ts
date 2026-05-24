@@ -2,13 +2,23 @@ export interface CompressionResponse {
   compressed_image_base64: string;
   rank: number;
   recommended_rank: number;
-  mse: number;
-  psnr: number;
+  small_rank?: number | null;
+  high_quality_rank?: number | null;
+  recommended_reason?: string | null;
+  target_ssim?: number | null;
+  target_psnr?: number | null;
+  target_retained_energy?: number | null;
+  actual_ssim_at_recommended?: number | null;
+  actual_psnr_at_recommended?: number | null;
+  retained_energy_at_recommended?: number | null;
+  is_grayscale?: boolean | null;
+  mse: number | null;
+  psnr: number | null;
   ssim?: number | null;
-  svd_compression_ratio: number;
-  png_output_ratio: number;
-  compression_ratio?: number;
-  retained_energy: number;
+  svd_compression_ratio: number | null;
+  png_output_ratio: number | null;
+  compression_ratio?: number | null;
+  retained_energy: number | null;
   compressed_mime_type?: string;
   original_format?: string;
   compressed_format?: string;
@@ -16,11 +26,11 @@ export interface CompressionResponse {
   original_height?: number;
   compressed_width?: number;
   compressed_height?: number;
-  original_size_bytes?: number;
-  compressed_size_bytes?: number;
-  bytes_saved?: number;
-  size_reduction_pct?: number;
-  processing_time_ms?: number;
+  original_size_bytes?: number | null;
+  compressed_size_bytes?: number | null;
+  bytes_saved?: number | null;
+  size_reduction_pct?: number | null;
+  processing_time_ms?: number | null;
 }
 
 export interface BatchSkippedFile {

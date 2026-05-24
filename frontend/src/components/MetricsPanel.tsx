@@ -6,122 +6,203 @@ interface Props {
   metrics: CompressionResponse | null;
 }
 
-const formatBytes = (bytes: number) => {
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const formatRatio = (ratio: number, locale: string) =>
+  `${ratio.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`;
+
+const formatPercent = (value: number, locale: string) =>
+  `${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+const formatDb = (value: number, locale: string) =>
+  `${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} dB`;
+
+const formatBytesLocalized = (bytes: number, locale: string) => {
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
   const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   const value = bytes / Math.pow(1024, index);
-  return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+  const formatted = value.toLocaleString(locale, {
+    minimumFractionDigits: index === 0 ? 0 : 2,
+    maximumFractionDigits: index === 0 ? 0 : 2,
+  });
+  return `${formatted} ${units[index]}`;
 };
 
-const formatRatio = (ratio: number) => `${ratio.toFixed(2)}x`;
-const formatPercent = (value: number) => `${value.toFixed(2)}%`;
-const formatDb = (value: number) => (Number.isFinite(value) ? `${value.toFixed(2)} dB` : '∞ dB');
+const formatSignedBytes = (bytes: number, locale: string) => {
+  if (bytes === 0) return '0 B';
+  const prefix = bytes > 0 ? '+' : '-';
+  return `${prefix}${formatBytesLocalized(Math.abs(bytes), locale)}`;
+};
+
+const getPsnrQuality = (psnr: number, language: 'en' | 'id') => {
+  if (psnr < 25) return language === 'id' ? 'Kualitas rendah' : 'Low quality';
+  if (psnr < 30) return language === 'id' ? 'Kualitas sedang' : 'Moderate quality';
+  if (psnr < 40) return language === 'id' ? 'Kualitas baik' : 'Good quality';
+  return language === 'id' ? 'Kualitas sangat baik' : 'Very good quality';
+};
+
+const buildSizeStats = (metrics: CompressionResponse) => {
+  const original = metrics.original_size_bytes;
+  const compressed = metrics.compressed_size_bytes;
+
+  if (!isFiniteNumber(original) || !isFiniteNumber(compressed)) return null;
+  if (original <= 0 || compressed <= 0) return null;
+
+  const sizeChangeBytes = compressed - original;
+  const sizeReductionPct = ((original - compressed) / original) * 100;
+  const outputRatio = original / compressed;
+
+  return {
+    sizeChangeBytes,
+    sizeReductionPct,
+    outputRatio,
+  };
+};
+
+const MetricCard = ({
+  title,
+  value,
+  helper,
+  valueClassName = 'text-primary',
+}: {
+  title: React.ReactNode;
+  value: React.ReactNode;
+  helper: React.ReactNode;
+  valueClassName?: string;
+}) => (
+  <div className="p-4 bg-white/60 rounded-2xl border border-gray-100 flex flex-col justify-between">
+    <div>
+      <p className="text-sm font-semibold text-gray-700 mb-1">{title}</p>
+      <p className={`text-2xl font-bold font-mono mb-3 ${valueClassName}`}>{value}</p>
+    </div>
+    <div className="text-[10px] text-gray-500 leading-tight">{helper}</div>
+  </div>
+);
+
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{children}</p>
+);
 
 export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
   const { t, language } = useI18n();
 
   if (!metrics) return null;
 
-  const sizeReduction = typeof metrics.size_reduction_pct === 'number' ? metrics.size_reduction_pct : null;
-  const bytesSaved = typeof metrics.bytes_saved === 'number' ? metrics.bytes_saved : null;
-  const compressionRatio =
-    typeof metrics.compression_ratio === 'number'
-      ? metrics.compression_ratio
-      : typeof metrics.png_output_ratio === 'number'
-        ? metrics.png_output_ratio
-        : null;
-
-  const ssimAvailable = typeof metrics.ssim === 'number';
-  const processingMsAvailable = typeof metrics.processing_time_ms === 'number';
+  const locale = language === 'id' ? 'id-ID' : 'en-US';
+  const sizeStats = buildSizeStats(metrics);
+  const pngOutputRatioValue =
+    isFiniteNumber(metrics.png_output_ratio)
+      ? metrics.png_output_ratio
+      : isFiniteNumber(metrics.compression_ratio)
+        ? metrics.compression_ratio
+        : sizeStats?.outputRatio ?? null;
+  const svdMatrixRatioValue = isFiniteNumber(metrics.svd_compression_ratio)
+    ? metrics.svd_compression_ratio
+    : null;
+  const ssimAvailable = isFiniteNumber(metrics.ssim);
+  const processingMsAvailable = isFiniteNumber(metrics.processing_time_ms);
+  const retainedEnergyValue = isFiniteNumber(metrics.retained_energy)
+    ? formatPercent(metrics.retained_energy * 100, locale)
+    : 'N/A';
+  const mseValue = isFiniteNumber(metrics.mse) ? metrics.mse.toFixed(2) : 'N/A';
+  const psnrValue = isFiniteNumber(metrics.psnr)
+    ? `${formatDb(metrics.psnr, locale)} · ${getPsnrQuality(metrics.psnr, language)}`
+    : 'N/A';
+  const pngOutputLarger = pngOutputRatioValue !== null && pngOutputRatioValue < 1;
+  const sizeChangeValue = sizeStats ? formatSignedBytes(sizeStats.sizeChangeBytes, locale) : null;
+  const sizeChangeTone =
+    sizeStats && sizeStats.sizeChangeBytes > 0
+      ? 'text-amber-700'
+      : sizeStats && sizeStats.sizeChangeBytes < 0
+        ? 'text-emerald-600'
+        : 'text-gray-800';
 
   return (
     <div className="glass-card p-6 mt-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+      <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
         <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
         {t('metrics.title')}
       </h3>
 
-      {metrics.png_output_ratio < 1 && (
-        <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl flex items-start gap-3">
-          <svg className="w-5 h-5 shrink-0 mt-0.5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <div className="text-sm">
-            <p className="font-bold">Warning</p>
-            <p>{language === 'id' ? 'Output PNG lebih besar dari file asli. Wajar untuk sebagian gambar.' : 'PNG output is larger than original file. This can happen for some images.'}</p>
-          </div>
-        </div>
-      )}
+      <div className="space-y-6">
+        <section>
+          <SectionTitle>{t('metrics.coreSection')}</SectionTitle>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <MetricCard
+              title="MSE"
+              value={mseValue}
+              helper={language === 'id' ? 'Rata-rata error kuadrat piksel.' : 'Average squared pixel error.'}
+            />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
-          title={t('metrics.rankUsedRecommended')}
-          value={`${metrics.rank} / ${metrics.recommended_rank}`}
-          helper={language === 'id' ? 'Rank dipakai vs rekomendasi.' : 'Rank used vs recommended.'}
-        />
+            <MetricCard
+              title="PSNR"
+              value={psnrValue}
+              helper={language === 'id' ? 'Semakin tinggi biasanya semakin baik.' : 'Higher is usually better.'}
+            />
 
-        <MetricCard
-          title={t('metrics.energyRetained')}
-          value={formatPercent(metrics.retained_energy * 100)}
-          helper={language === 'id' ? 'Varians SVD yang dipertahankan.' : 'Retained SVD variance.'}
-        />
-
-        {compressionRatio !== null && (
-          <MetricCard
-            title={language === 'id' ? 'Rasio Kompresi' : 'Compression Ratio'}
-            value={formatRatio(compressionRatio)}
-            helper={language === 'id' ? 'Ukuran asli dibanding ukuran terkompresi.' : 'Original size divided by compressed size.'}
-          />
-        )}
-
-        {sizeReduction !== null && bytesSaved !== null && (
-          <MetricCard
-            title={language === 'id' ? 'Penghematan Ukuran' : 'Size Reduction'}
-            value={formatPercent(sizeReduction)}
-            helper={language === 'id' ? `${formatBytes(bytesSaved)} lebih kecil.` : `${formatBytes(bytesSaved)} saved.`}
-          />
-        )}
-
-        {processingMsAvailable && (
-          <MetricCard
-            title={language === 'id' ? 'Waktu Proses' : 'Processing Time'}
-            value={`${metrics.processing_time_ms!.toFixed(0)} ms`}
-            helper={language === 'id' ? 'Waktu kompresi backend.' : 'Backend compression duration.'}
-          />
-        )}
-
-        {ssimAvailable && (
-          <MetricCard
-            title="SSIM"
-            value={metrics.ssim!.toFixed(4)}
-            helper={language === 'id' ? 'Kemiripan struktural (0-1).' : 'Structural similarity score (0-1).'}
-          />
-        )}
-
-        <div className="sm:col-span-2 md:col-span-4 p-4 bg-white/60 rounded-2xl border border-gray-100 mt-2">
-          <p className="text-sm font-semibold text-gray-700 mb-1">{t('metrics.msePsnr')}</p>
-          <div className="font-bold font-mono text-xl flex flex-wrap gap-x-8 gap-y-2 text-primary">
-            <span>{metrics.mse.toFixed(2)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">MSE</span></span>
-            <span>{formatDb(metrics.psnr)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">PSNR</span></span>
             {ssimAvailable && (
-              <span>{metrics.ssim!.toFixed(4)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">SSIM</span></span>
+              <MetricCard
+                title="SSIM"
+                value={metrics.ssim!.toFixed(4)}
+                helper={language === 'id' ? 'Kemiripan struktural (0-1).' : 'Structural similarity score (0-1).'}
+              />
             )}
+
+            <MetricCard
+              title={t('metrics.energyRetained')}
+              value={retainedEnergyValue}
+              helper={t('metrics.energyHelper')}
+            />
           </div>
-        </div>
+        </section>
+
+        <section>
+          <SectionTitle>{t('metrics.compressionSection')}</SectionTitle>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <MetricCard
+              title={t('metrics.svdMatrixRatio')}
+              value={svdMatrixRatioValue !== null ? formatRatio(svdMatrixRatioValue, locale) : 'N/A'}
+              helper={t('metrics.svdMatrixHelper')}
+            />
+
+            <MetricCard
+              title={t('metrics.pngOutputRatio')}
+              value={pngOutputRatioValue !== null ? formatRatio(pngOutputRatioValue, locale) : 'N/A'}
+              helper={
+                <div className="space-y-2">
+                  <p>{t('metrics.pngOutputHelper')}</p>
+                  {pngOutputLarger && (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium leading-snug text-amber-700">
+                      {t('metrics.largerOutputBody')}
+                    </p>
+                  )}
+                </div>
+              }
+            />
+
+            <MetricCard
+              title={language === 'id' ? 'Perubahan Ukuran' : 'Size Change'}
+              value={sizeChangeValue ?? 'N/A'}
+              valueClassName={sizeChangeTone}
+              helper={
+                language === 'id'
+                  ? 'Positif = output lebih besar. Negatif = output lebih kecil.'
+                  : 'Positive means larger output. Negative means smaller output.'
+              }
+            />
+
+            <MetricCard
+              title={language === 'id' ? 'Waktu Proses' : 'Processing Time'}
+              value={processingMsAvailable ? `${metrics.processing_time_ms!.toFixed(0)} ms` : 'N/A'}
+              helper={t('metrics.processingHelper')}
+            />
+          </div>
+        </section>
       </div>
     </div>
   );
 };
-
-const MetricCard = ({ title, value, helper }: { title: string; value: string; helper: string }) => (
-  <div className="p-4 bg-white/60 rounded-2xl border border-gray-100 flex flex-col justify-between">
-    <div>
-      <p className="text-sm font-semibold text-gray-700 mb-1">{title}</p>
-      <p className="text-2xl font-bold font-mono text-primary mb-3">{value}</p>
-    </div>
-    <p className="text-[10px] text-gray-500 leading-tight">{helper}</p>
-  </div>
-);

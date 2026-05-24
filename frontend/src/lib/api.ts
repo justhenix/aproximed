@@ -16,7 +16,17 @@ const buildApiUrl = (path: string) => {
 interface AnalyzeResponse {
   filename: string;
   recommended_rank: number;
+  small_rank?: number;
+  high_quality_rank?: number;
+  recommended_reason?: string;
   max_rank: number;
+  target_ssim?: number | null;
+  target_psnr?: number | null;
+  target_retained_energy?: number | null;
+  actual_ssim_at_recommended?: number | null;
+  actual_psnr_at_recommended?: number | null;
+  retained_energy_at_recommended?: number | null;
+  is_grayscale?: boolean;
 }
 
 export const healthCheck = async () => {

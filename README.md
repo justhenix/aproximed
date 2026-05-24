@@ -140,6 +140,14 @@ POST /compress
 
 Compresses the uploaded image using the selected rank-k value and returns the reconstructed image with compression metrics.
 
+### Batch Compress (Direct Upload)
+
+```txt
+POST /batch/images
+```
+
+Uploads multiple images and returns per-image metrics along with optional CSV and ZIP outputs. CSV/ZIP are outputs, not inputs.
+
 ## Notes
 
 Aproximed is a mathematical and educational prototype.  

@@ -50,7 +50,6 @@ Upload endpoints already use `multipart/form-data`:
 Batch endpoints:
 
 - `POST /batch/images` (active; direct image upload, returns CSV/ZIP outputs)
-- `POST /batch/compress` (legacy/deprecated; CSV+ZIP input flow)
 
 ## Required Deploy Order
 
