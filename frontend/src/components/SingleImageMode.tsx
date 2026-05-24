@@ -1,20 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { RankControls } from './RankControls';
-import { ImageCompare } from './ImageCompare';
+import { ImageCompare, type CompareImageMeta } from './ImageCompare';
 import { MetricsPanel } from './MetricsPanel';
 import { analyzeImage, compressImage } from '../lib/api';
 import type { CompressionResponse } from '../types/compression';
 import { useI18n } from '../i18n/I18nContext';
-
-export interface CompressionMetrics {
-  rank: number;
-  recommended_rank: number;
-  mse: number;
-  psnr: number;
-  svd_compression_ratio: number;
-  png_output_ratio: number;
-  retained_energy: number;
-}
 
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
@@ -24,10 +14,35 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+const detectFileFormat = (file: File) => {
+  if (file.type.includes('/')) {
+    return file.type.split('/')[1].toUpperCase();
+  }
+
+  const ext = file.name.split('.').pop();
+  return ext ? ext.toUpperCase() : 'UNKNOWN';
+};
+
+const readImageDimensions = (file: File): Promise<{ width: number; height: number } | null> =>
+  new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.width, height: img.height });
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.onerror = () => {
+      resolve(null);
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.src = objectUrl;
+  });
+
 export const SingleImageMode: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [originalPreview, setOriginalPreview] = useState<string | null>(null);
   const [originalFilename, setOriginalFilename] = useState<string>('');
+  const [originalMeta, setOriginalMeta] = useState<CompareImageMeta | null>(null);
 
   const [rank, setRank] = useState<number>(50);
   const [recommendedRank, setRecommendedRank] = useState<number | null>(null);
@@ -35,7 +50,7 @@ export const SingleImageMode: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
 
   const [compressedImage, setCompressedImage] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState<CompressionMetrics | null>(null);
+  const [compressionResult, setCompressionResult] = useState<CompressionResponse | null>(null);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,20 +59,50 @@ export const SingleImageMode: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
 
+  const clearSelection = () => {
+    if (originalPreview) {
+      URL.revokeObjectURL(originalPreview);
+    }
+    setImageFile(null);
+    setOriginalPreview(null);
+    setOriginalFilename('');
+    setOriginalMeta(null);
+    setCompressedImage(null);
+    setCompressionResult(null);
+  };
+
   const handleImageSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setError(t('single.errorNotImage'));
       return;
     }
 
+    if (originalPreview) {
+      URL.revokeObjectURL(originalPreview);
+    }
+
+    const previewUrl = URL.createObjectURL(file);
     setImageFile(file);
-    setOriginalPreview(URL.createObjectURL(file));
+    setOriginalPreview(previewUrl);
     setOriginalFilename(file.name);
+    setOriginalMeta({
+      sizeBytes: file.size,
+      format: detectFileFormat(file),
+    });
     setCompressedImage(null);
-    setMetrics(null);
+    setCompressionResult(null);
     setError(null);
     setRecommendedRank(null);
     setMaxRank(200);
+
+    const dims = await readImageDimensions(file);
+    if (dims) {
+      setOriginalMeta((prev) => ({
+        ...(prev || {}),
+        width: dims.width,
+        height: dims.height,
+      }));
+    }
 
     setIsAnalyzing(true);
     try {
@@ -66,7 +111,7 @@ export const SingleImageMode: React.FC = () => {
       if (data.max_rank) setMaxRank(data.max_rank);
       setRank(data.recommended_rank);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Image analysis failed");
+      setError(err instanceof Error ? err.message : 'Image analysis failed');
     } finally {
       setIsAnalyzing(false);
     }
@@ -100,29 +145,39 @@ export const SingleImageMode: React.FC = () => {
     setError(null);
 
     try {
-      const data: CompressionResponse = await compressImage(imageFile, rank);
-      setCompressedImage(`data:image/png;base64,${data.compressed_image_base64}`);
-
+      const data = await compressImage(imageFile, rank);
+      const mimeType = data.compressed_mime_type || 'image/png';
+      setCompressedImage(`data:${mimeType};base64,${data.compressed_image_base64}`);
+      setCompressionResult(data);
       setRecommendedRank(data.recommended_rank);
-      setMetrics({
-        rank: data.rank,
-        recommended_rank: data.recommended_rank,
-        mse: data.mse,
-        psnr: data.psnr,
-        svd_compression_ratio: data.svd_compression_ratio,
-        png_output_ratio: data.png_output_ratio,
-        retained_energy: data.retained_energy,
-      });
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("An unknown error occurred");
+        setError('An unknown error occurred');
       }
     } finally {
       setLoading(false);
     }
   };
+
+  const resolvedOriginalMeta: CompareImageMeta | null = imageFile
+    ? {
+        width: originalMeta?.width ?? compressionResult?.original_width ?? null,
+        height: originalMeta?.height ?? compressionResult?.original_height ?? null,
+        sizeBytes: originalMeta?.sizeBytes ?? compressionResult?.original_size_bytes ?? imageFile.size,
+        format: originalMeta?.format ?? compressionResult?.original_format ?? detectFileFormat(imageFile),
+      }
+    : null;
+
+  const compressedMeta: CompareImageMeta | null = compressionResult
+    ? {
+        width: compressionResult.compressed_width ?? null,
+        height: compressionResult.compressed_height ?? null,
+        sizeBytes: compressionResult.compressed_size_bytes ?? null,
+        format: compressionResult.compressed_format ?? null,
+      }
+    : null;
 
   return (
     <div className="w-full flex flex-col items-center space-y-8 max-w-6xl mx-auto">
@@ -170,7 +225,7 @@ export const SingleImageMode: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="w-full flex flex-col items-center space-y-8 animate-in fade-in slide-in-from-bottom-4"> 
+        <div className="w-full flex flex-col items-center space-y-8 animate-in fade-in slide-in-from-bottom-4">
           <div className="w-full max-w-3xl space-y-6">
             <div className="glass-card p-4 flex items-center justify-between border border-gray-100 shadow-sm rounded-2xl bg-white/80">
               <div className="flex items-center gap-4">
@@ -184,12 +239,7 @@ export const SingleImageMode: React.FC = () => {
               </div>
 
               <button
-                onClick={() => {
-                  setImageFile(null);
-                  setOriginalPreview(null);
-                  setCompressedImage(null);
-                  setMetrics(null);
-                }}
+                onClick={clearSelection}
                 className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors shrink-0"
               >
                 {t('single.changeImage')}
@@ -209,15 +259,17 @@ export const SingleImageMode: React.FC = () => {
           </div>
 
           {(loading || compressedImage) && (
-            <div className="w-full max-w-5xl space-y-6 animate-in fade-in pt-4 border-t border-gray-100">       
+            <div className="w-full max-w-5xl space-y-6 animate-in fade-in pt-4 border-t border-gray-100">
               <ImageCompare
                 original={originalPreview}
                 compressed={compressedImage}
                 loading={loading}
                 originalFilename={originalFilename}
+                originalMeta={resolvedOriginalMeta}
+                compressedMeta={compressedMeta}
               />
 
-              {metrics && <MetricsPanel metrics={metrics} />}
+              {compressionResult && <MetricsPanel metrics={compressionResult} />}
             </div>
           )}
         </div>

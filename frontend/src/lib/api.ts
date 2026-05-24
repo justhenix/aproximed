@@ -1,4 +1,4 @@
-import type { CompressionResponse } from '../types/compression';
+import type { BatchImageCompressionResponse, CompressionResponse } from '../types/compression';
 
 const LOCAL_API_URL = "http://localhost:8000";
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
@@ -84,4 +84,50 @@ export const compressImage = async (file: File, rank: number): Promise<Compressi
   }
 
   return data as CompressionResponse;
+};
+
+export const compressBatchImages = async (
+  imageFiles: File[],
+  rank: number,
+  includeCompressedZip = true,
+  includeAllResultsZip = true,
+): Promise<BatchImageCompressionResponse> => {
+  if (imageFiles.length === 0) {
+    throw new Error("No images selected for batch compression");
+  }
+
+  const formData = new FormData();
+  imageFiles.forEach((file) => {
+    formData.append("images", file);
+  });
+  formData.append("rank", rank.toString());
+  formData.append("include_report_csv", "true");
+  formData.append("include_compressed_zip", includeCompressedZip ? "true" : "false");
+  formData.append("include_all_results_zip", includeAllResultsZip ? "true" : "false");
+
+  const response = await fetch(buildApiUrl("/batch/images"), {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const detail =
+      data && typeof data === "object" && "detail" in data
+        ? String(data.detail)
+        : "Batch compression failed";
+    throw new Error(detail);
+  }
+
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !("per_image_results" in data) ||
+    !("total_files" in data)
+  ) {
+    throw new Error("Invalid response from batch compression API");
+  }
+
+  return data as BatchImageCompressionResponse;
 };

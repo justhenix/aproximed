@@ -1,7 +1,8 @@
+import base64
+import io
+
 import numpy as np
 from PIL import Image
-import io
-import base64
 
 # Image preprocessing: convert to grayscale and to numpy array
 def preprocess_image(image: Image.Image) -> np.ndarray:
@@ -105,15 +106,19 @@ def calculate_recommended_rank(singular_values: np.ndarray, target_energy: float
 
 # Convert a numpy array (grayscale image) to a base64-encoded PNG string
 def matrix_to_base64_png(matrix: np.ndarray) -> str:
+    png_bytes = matrix_to_png_bytes(matrix)
+    base64_str = base64.b64encode(png_bytes).decode("utf-8")
+    return base64_str
+
+
+def matrix_to_png_bytes(matrix: np.ndarray) -> bytes:
     clipped_matrix = np.clip(matrix, 0, 255)
     uint8_matrix = clipped_matrix.astype(np.uint8)
-    
+
     image = Image.fromarray(uint8_matrix, mode="L")
     # if complains with deprecation warning, use:
     # image = Image.fromarray(uint8_matrix)
-    
+
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
-    
-    base64_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    return base64_str
+    return buffer.getvalue()

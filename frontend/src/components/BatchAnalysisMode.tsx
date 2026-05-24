@@ -1,23 +1,60 @@
-import React, { useState, useRef } from 'react';
-import { compressImage } from '../lib/api';
-import type { CompressionResponse } from '../types/compression';
+import React, { useRef, useState } from 'react';
+import { compressBatchImages } from '../lib/api';
+import type { BatchImageCompressionResponse, BatchImageResult } from '../types/compression';
 import { useI18n } from '../i18n/I18nContext';
 
 export interface BatchFileStatus {
   id: string;
   file: File;
   previewUrl: string;
-  status: 'pending' | 'processing' | 'done' | 'failed';
-  metrics?: CompressionResponse;
-  error?: string;
 }
 
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+const formatFileSize = (bytes?: number | null) => {
+  if (typeof bytes !== 'number' || Number.isNaN(bytes)) return '-';
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, index);
+  return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+};
+
+const formatPercent = (value?: number | null) =>
+  typeof value === 'number' ? `${value.toFixed(2)}%` : '-';
+
+const formatRatio = (value?: number | null) =>
+  typeof value === 'number' ? `${value.toFixed(2)}x` : '-';
+
+const formatNumber = (value?: number | null, digits = 2) =>
+  typeof value === 'number' ? value.toFixed(digits) : '-';
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const downloadBase64File = (base64: string, mimeType: string, filename: string) => {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i += 1) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  downloadBlob(new Blob([bytes], { type: mimeType }), filename);
+};
+
+const renderStatus = (status: BatchImageResult['status'], language: 'en' | 'id') => {
+  if (status === 'done') {
+    return <span className="text-green-600 font-semibold">{language === 'id' ? 'Selesai' : 'Done'}</span>;
+  }
+  if (status === 'skipped') {
+    return <span className="text-amber-600 font-semibold">{language === 'id' ? 'Skip' : 'Skipped'}</span>;
+  }
+  return <span className="text-red-600 font-semibold">{language === 'id' ? 'Gagal' : 'Failed'}</span>;
 };
 
 export const BatchAnalysisMode: React.FC = () => {
@@ -25,7 +62,9 @@ export const BatchAnalysisMode: React.FC = () => {
   const [batchRank, setBatchRank] = useState<number>(50);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchResult, setBatchResult] = useState<BatchImageCompressionResponse | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t, language } = useI18n();
 
@@ -47,11 +86,12 @@ export const BatchAnalysisMode: React.FC = () => {
       setBatchError(null);
     }
 
+    if (validFiles.length === 0) return;
+
     const newFiles = validFiles.map((file) => ({
       id: Math.random().toString(36).substring(7),
       file,
       previewUrl: URL.createObjectURL(file),
-      status: 'pending' as const,
     }));
     setBatchFiles((prev) => [...prev, ...newFiles]);
   };
@@ -76,7 +116,7 @@ export const BatchAnalysisMode: React.FC = () => {
 
   const removeFile = (id: string) => {
     setBatchFiles((prev) => {
-      const fileToRemove = prev.find(f => f.id === id);
+      const fileToRemove = prev.find((f) => f.id === id);
       if (fileToRemove) URL.revokeObjectURL(fileToRemove.previewUrl);
       return prev.filter((f) => f.id !== id);
     });
@@ -84,93 +124,43 @@ export const BatchAnalysisMode: React.FC = () => {
 
   const clearQueue = () => {
     setBatchFiles((prev) => {
-      prev.forEach(f => URL.revokeObjectURL(f.previewUrl));
+      prev.forEach((f) => URL.revokeObjectURL(f.previewUrl));
       return [];
     });
+    setBatchResult(null);
+    setBatchError(null);
   };
 
   const runBatch = async () => {
     if (batchFiles.length === 0) return;
+
     setIsProcessing(true);
     setBatchError(null);
+    setBatchResult(null);
 
-    const updatedFiles = [...batchFiles];
-    // Reset status to pending for retry of failed ones
-    updatedFiles.forEach(f => {
-      if (f.status === 'failed') f.status = 'pending';
-    });
-    setBatchFiles([...updatedFiles]);
-
-    for (let i = 0; i < updatedFiles.length; i++) {
-      if (updatedFiles[i].status === 'done') continue;
-
-      updatedFiles[i].status = 'processing';
-      setBatchFiles([...updatedFiles]);
-
-      try {
-        const data: CompressionResponse = await compressImage(updatedFiles[i].file, batchRank);
-        updatedFiles[i].status = 'done';
-        updatedFiles[i].metrics = data;
-      } catch (err) {
-        updatedFiles[i].status = 'failed';
-        updatedFiles[i].error = err instanceof Error ? err.message : "Unknown error";
-      }
-      setBatchFiles([...updatedFiles]);
+    try {
+      const response = await compressBatchImages(
+        batchFiles.map((item) => item.file),
+        batchRank,
+        true,
+        true,
+      );
+      setBatchResult(response);
+    } catch (err) {
+      setBatchError(err instanceof Error ? err.message : 'Batch compression failed');
+    } finally {
+      setIsProcessing(false);
     }
-
-    setIsProcessing(false);
   };
 
-  const downloadCSV = () => {
-    const headers = ["file_name", "status", "rank_used", "recommended_rank", "svd_energy_retained", "svd_matrix_ratio", "png_output_ratio", "mse", "psnr", "error"];
-
-    const rows = batchFiles.map(f => {
-      return [
-        `"${f.file.name}"`,
-        f.status,
-        f.metrics?.rank || batchRank,
-        f.metrics?.recommended_rank || "",
-        f.metrics?.retained_energy ? (f.metrics.retained_energy * 100).toFixed(2) + '%' : "",
-        f.metrics?.svd_compression_ratio ? f.metrics.svd_compression_ratio.toFixed(2) + 'x' : "",       
-        f.metrics?.png_output_ratio ? f.metrics.png_output_ratio.toFixed(2) + 'x' : "",
-        f.metrics?.mse?.toFixed(4) || "",
-        f.metrics?.psnr?.toFixed(2) || "",
-        `"${f.error || ""}"`
-      ].join(",");
-    });
-
-    const csvContent = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "aproximed-batch-results.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const successfulCount = batchFiles.filter(f => f.status === 'done').length;
-  const failedCount = batchFiles.filter(f => f.status === 'failed').length;
-
-  const avgPsnr = successfulCount > 0
-    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.psnr || 0), 0) / successfulCount).toFixed(2)
-    : 0;
-  const avgMse = successfulCount > 0
-    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.mse || 0), 0) / successfulCount).toFixed(4)
-    : 0;
-  const avgEnergy = successfulCount > 0
-    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.retained_energy || 0), 0) / successfulCount * 100).toFixed(2)
-    : 0;
-  const avgRatio = successfulCount > 0
-    ? (batchFiles.reduce((acc, f) => acc + (f.metrics?.png_output_ratio || 0), 0) / successfulCount).toFixed(2)
-    : 0;
+  const doneCount = batchResult?.success_count ?? 0;
+  const failedCount = batchResult?.failed_count ?? 0;
+  const skippedCount = batchResult?.skipped_count ?? 0;
 
   return (
     <div className="w-full flex flex-col items-center space-y-8 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-
       {batchError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-sm text-sm flex items-center gap-3 w-full max-w-3xl">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-sm text-sm flex items-center gap-3 w-full max-w-5xl">
           <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -178,179 +168,126 @@ export const BatchAnalysisMode: React.FC = () => {
         </div>
       )}
 
-      {/* Upload Area */}
-      <div className="w-full max-w-4xl">
-        <div
-          className={`border-2 border-dashed rounded-2xl p-8 text-center bg-white cursor-pointer transition-all duration-200 flex flex-col items-center justify-center ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}`}
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-        >
-          <div className="text-gray-500 mb-4 flex flex-col items-center">
-            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
-              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-            </div>
-            <p className="text-lg font-bold text-gray-800">{t('batch.uploadTitle')}</p>
-            <p className="text-sm mt-1">{t('batch.uploadSubtitle')}</p>
+      <div className="w-full max-w-6xl space-y-6">
+        <div className="glass-card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white/80">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">{language === 'id' ? 'Batch Manual (Gambar)' : 'Manual Batch (Images)'}</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {language === 'id'
+                ? 'Unggah banyak gambar, lalu unduh hasil kompresi sebagai ZIP dan laporan CSV.'
+                : 'Upload many images, then download compressed ZIP and CSV report.'}
+            </p>
           </div>
-          <input
-            type="file"
-            className="hidden"
-            accept="image/*"
-            multiple
-            ref={fileInputRef}
-            onChange={(e) => {
-              if (e.target.files && e.target.files.length > 0) {
-                handleFilesSelect(e.target.files);
-              }
-              if (fileInputRef.current) fileInputRef.current.value = '';
-            }}
-          />
-        </div>
-      </div>
 
-      {batchFiles.length > 0 && (
-        <div className="w-full max-w-6xl space-y-6">
-
-          <div className="glass-card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white/80">
-            <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center mb-6">  
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{t('batch.settingsTitle')}</h3>
-                <p className="text-sm text-gray-500 mt-1">{t('batch.settingsDesc')}</p>
+          <div
+            className={`border-2 border-dashed rounded-2xl p-8 text-center bg-white cursor-pointer transition-all duration-200 flex flex-col items-center justify-center ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}`}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+          >
+            <div className="text-gray-500 mb-4 flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
               </div>
-              <div className="flex items-center gap-4 w-full md:w-auto">
-                <div className="flex-1 md:w-48">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Rank k = {batchRank}</label>  
-                  <input
-                    type="range"
-                    min={1}
-                    max={200}
-                    value={batchRank}
-                    onChange={(e) => setBatchRank(Number(e.target.value))}
-                    disabled={isProcessing}
-                    className="w-full"
-                  />
-                </div>
-                <button
-                  onClick={runBatch}
-                  disabled={isProcessing || batchFiles.length === 0}
-                  className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {isProcessing ? t('batch.processing') : t('batch.run')}
-                </button>
-              </div>
+              <p className="text-lg font-bold text-gray-800">{t('batch.uploadTitle')}</p>
+              <p className="text-sm mt-1">{t('batch.uploadSubtitle')}</p>
             </div>
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              multiple
+              ref={fileInputRef}
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  handleFilesSelect(e.target.files);
+                }
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+            />
+          </div>
 
-            <div className="flex items-center justify-between py-4 border-t border-gray-100">
-              <div className="flex gap-4 text-sm flex-wrap items-center">
-                <div className="bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
-                  <span className="text-gray-500">{t('batch.total')}:</span> <span className="font-semibold text-gray-900">{batchFiles.length}</span>
-                </div>
-                <div className="bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 text-green-700">     
-                  <span>{t('batch.success')}:</span> <span className="font-semibold">{successfulCount}</span>
-                </div>
+          <div className="mt-4 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+            <div className="w-full md:max-w-sm">
+              <label className="text-sm font-medium text-gray-700 block mb-1">Rank k = {batchRank}</label>
+              <input
+                type="range"
+                min={1}
+                max={200}
+                value={batchRank}
+                onChange={(e) => setBatchRank(Number(e.target.value))}
+                disabled={isProcessing}
+                className="w-full"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={runBatch}
+                disabled={isProcessing || batchFiles.length === 0}
+                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {isProcessing ? t('batch.processing') : (language === 'id' ? 'Jalankan Batch' : 'Run Batch')}
+              </button>
+              <button
+                onClick={clearQueue}
+                disabled={isProcessing}
+                className="px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {t('batch.clearQueue')}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 text-sm flex-wrap">
+            <span className="bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">{t('batch.total')}: {batchFiles.length}</span>
+            {batchResult && (
+              <>
+                <span className="bg-green-50 px-3 py-1 rounded-lg border border-green-200 text-green-700">{t('batch.success')}: {doneCount}</span>
                 {failedCount > 0 && (
-                  <div className="bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 text-red-700">
-                    <span>{t('batch.failed')}:</span> <span className="font-semibold">{failedCount}</span>
-                  </div>
+                  <span className="bg-red-50 px-3 py-1 rounded-lg border border-red-200 text-red-700">{t('batch.failed')}: {failedCount}</span>
                 )}
-                {successfulCount > 0 && (
-                  <div className="flex gap-2">
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
-                      <span>{t('batch.avgPsnr')}:</span> <span className="font-semibold">{avgPsnr} dB</span>
-                    </div>
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
-                      <span>{t('batch.avgMse')}:</span> <span className="font-semibold">{avgMse}</span>
-                    </div>
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
-                      <span>{t('batch.avgEnergy')}:</span> <span className="font-semibold">{avgEnergy}%</span>
-                    </div>
-                    <div className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700">    
-                      <span>{t('batch.avgRatio')}:</span> <span className="font-semibold">{avgRatio}x</span>
-                    </div>
-                  </div>
+                {skippedCount > 0 && (
+                  <span className="bg-amber-50 px-3 py-1 rounded-lg border border-amber-200 text-amber-700">
+                    {language === 'id' ? 'Skip' : 'Skipped'}: {skippedCount}
+                  </span>
                 )}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={clearQueue}
-                  disabled={isProcessing}
-                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {t('batch.clearQueue')}
-                </button>
-                {successfulCount > 0 && (
-                  <button 
-                    onClick={downloadCSV}
-                    className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    {t('batch.exportCsv')}
-                  </button>
-                )}
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
-          <div className="glass-card border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden">    
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-500 bg-gray-50 uppercase border-b border-gray-100">
+          {batchFiles.length > 0 && (
+            <div className="mt-4 overflow-x-auto border border-gray-100 rounded-xl">
+              <table className="w-full text-xs text-left">
+                <thead className="text-[11px] text-gray-500 bg-gray-50 uppercase border-b border-gray-100">
                   <tr>
-                    <th className="px-4 py-3 font-medium">{t('batch.table.file')}</th>
-                    <th className="px-4 py-3 font-medium">{t('batch.table.status')}</th>
-                    <th className="px-4 py-3 font-medium text-right">{language === 'id' ? 'Ukuran' : 'Size'}</th>
-                    <th className="px-4 py-3 font-medium text-right">{t('batch.table.psnr')}</th>
-                    <th className="px-4 py-3 font-medium text-right">{t('batch.table.mse')}</th>
-                    <th className="px-4 py-3 font-medium text-right">{t('batch.table.energy')}</th>
-                    <th className="px-4 py-3 font-medium text-center">{language === 'id' ? 'Aksi' : 'Actions'}</th>
+                    <th className="px-3 py-2">{t('batch.table.file')}</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Ukuran' : 'Size'}</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Aksi' : 'Action'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {batchFiles.map((fileStatus) => (
-                    <tr key={fileStatus.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-md bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
-                            <img src={fileStatus.previewUrl} alt="preview" className="w-full h-full object-cover" />
+                  {batchFiles.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-3 py-2 font-medium text-gray-900">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-md bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+                            <img src={item.previewUrl} alt="preview" className="w-full h-full object-cover" />
                           </div>
-                          <span className="truncate max-w-37.5" title={fileStatus.file.name}>
-                            {fileStatus.file.name}
-                          </span>
+                          <span className="truncate max-w-40" title={item.file.name}>{item.file.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        {fileStatus.status === 'pending' && <span className="text-gray-500">{t('batch.status.pending')}</span>}     
-                        {fileStatus.status === 'processing' && <span className="text-blue-500 flex items-center gap-1"><span className="animate-pulse">●</span> {t('batch.status.processing')}</span>}
-                        {fileStatus.status === 'done' && <span className="text-green-600">{t('batch.status.done')}</span>}      
-                        {fileStatus.status === 'failed' && <span className="text-red-500" title={fileStatus.error}>{t('batch.status.failed')}</span>}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
-                        {formatFileSize(fileStatus.file.size)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-700 font-mono">
-                        {fileStatus.metrics?.psnr?.toFixed(2) || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-700 font-mono">
-                        {fileStatus.metrics?.mse?.toFixed(2) || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-700">
-                        {fileStatus.metrics?.retained_energy ? `${(fileStatus.metrics.retained_energy * 100).toFixed(1)}%` : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-3 py-2 text-right text-gray-600">{formatFileSize(item.file.size)}</td>
+                      <td className="px-3 py-2 text-right">
                         <button
-                          onClick={() => removeFile(fileStatus.id)}
+                          onClick={() => removeFile(item.id)}
                           disabled={isProcessing}
-                          className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"    
-                          title="Remove file"
+                          className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                          title={language === 'id' ? 'Hapus file' : 'Remove file'}
                         >
-                          <svg className="w-5 h-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-4 h-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
@@ -360,10 +297,112 @@ export const BatchAnalysisMode: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </div>
-
+          )}
         </div>
-      )}
+
+        {batchResult && (
+          <div className="glass-card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white/80 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {batchResult.report_csv_base64 && batchResult.report_filename && (
+                <button
+                  onClick={() =>
+                    downloadBase64File(
+                      batchResult.report_csv_base64!,
+                      'text/csv;charset=utf-8',
+                      batchResult.report_filename!,
+                    )
+                  }
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+                >
+                  {language === 'id' ? 'Download CSV Report' : 'Download CSV Report'}
+                </button>
+              )}
+
+              {batchResult.compressed_images_zip_base64 && batchResult.compressed_images_zip_filename && (
+                <button
+                  onClick={() =>
+                    downloadBase64File(
+                      batchResult.compressed_images_zip_base64!,
+                      'application/zip',
+                      batchResult.compressed_images_zip_filename!,
+                    )
+                  }
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+                >
+                  {language === 'id' ? 'Download ZIP Gambar Terkompresi' : 'Download Compressed Images ZIP'}
+                </button>
+              )}
+
+              {batchResult.all_results_zip_base64 && batchResult.all_results_zip_filename && (
+                <button
+                  onClick={() =>
+                    downloadBase64File(
+                      batchResult.all_results_zip_base64!,
+                      'application/zip',
+                      batchResult.all_results_zip_filename!,
+                    )
+                  }
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+                >
+                  {language === 'id' ? 'Download All Results ZIP' : 'Download All Results ZIP'}
+                </button>
+              )}
+            </div>
+
+            <div className="overflow-x-auto border border-gray-100 rounded-xl">
+              <table className="w-full text-xs text-left">
+                <thead className="text-[11px] text-gray-500 bg-gray-50 uppercase border-b border-gray-100">
+                  <tr>
+                    <th className="px-3 py-2">{language === 'id' ? 'Filename' : 'Filename'}</th>
+                    <th className="px-3 py-2">{t('batch.table.status')}</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Asli' : 'Original'}</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Kompresi' : 'Compressed'}</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Hemat' : 'Bytes Saved'}</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Reduksi' : 'Reduction %'}</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Rasio' : 'Ratio'}</th>
+                    <th className="px-3 py-2 text-right">k</th>
+                    <th className="px-3 py-2 text-right">{language === 'id' ? 'Energi' : 'Energy'}</th>
+                    <th className="px-3 py-2 text-right">PSNR</th>
+                    <th className="px-3 py-2 text-right">SSIM</th>
+                    <th className="px-3 py-2">{language === 'id' ? 'Error' : 'Error'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {batchResult.per_image_results.map((item, index) => (
+                    <tr key={`${item.filename}-${item.status}-${index}`} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-3 py-2 font-medium text-gray-900">{item.filename}</td>
+                      <td className="px-3 py-2">{renderStatus(item.status, language)}</td>
+                      <td className="px-3 py-2 text-right">{formatFileSize(item.original_size_bytes)}</td>
+                      <td className="px-3 py-2 text-right">{formatFileSize(item.compressed_size_bytes)}</td>
+                      <td className="px-3 py-2 text-right">{formatFileSize(item.bytes_saved)}</td>
+                      <td className="px-3 py-2 text-right">{formatPercent(item.size_reduction_pct)}</td>
+                      <td className="px-3 py-2 text-right">{formatRatio(item.compression_ratio)}</td>
+                      <td className="px-3 py-2 text-right">{item.rank ?? '-'}</td>
+                      <td className="px-3 py-2 text-right">{typeof item.retained_energy === 'number' ? `${(item.retained_energy * 100).toFixed(2)}%` : '-'}</td>
+                      <td className="px-3 py-2 text-right">{formatNumber(item.psnr, 2)}</td>
+                      <td className="px-3 py-2 text-right">{formatNumber(item.ssim, 4)}</td>
+                      <td className="px-3 py-2 text-red-600">{item.error || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {batchResult.skipped_files.length > 0 && (
+              <details className="rounded-lg border border-amber-200 bg-amber-50/40 p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-amber-800">
+                  {language === 'id' ? 'File di-skip' : 'Skipped Files'} ({batchResult.skipped_files.length})
+                </summary>
+                <div className="mt-2 text-xs text-amber-900 space-y-1">
+                  {batchResult.skipped_files.map((item) => (
+                    <p key={`${item.filename}-${item.reason}`}>{item.filename} - {item.reason}</p>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

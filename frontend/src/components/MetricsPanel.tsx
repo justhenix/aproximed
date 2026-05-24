@@ -1,13 +1,39 @@
 import React from 'react';
-import type { CompressionMetrics } from './SingleImageMode';
+import type { CompressionResponse } from '../types/compression';
 import { useI18n } from '../i18n/I18nContext';
 
 interface Props {
-  metrics: CompressionMetrics | null;
+  metrics: CompressionResponse | null;
 }
+
+const formatBytes = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, index);
+  return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+};
+
+const formatRatio = (ratio: number) => `${ratio.toFixed(2)}x`;
+const formatPercent = (value: number) => `${value.toFixed(2)}%`;
+const formatDb = (value: number) => (Number.isFinite(value) ? `${value.toFixed(2)} dB` : '∞ dB');
 
 export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
   const { t, language } = useI18n();
+
+  if (!metrics) return null;
+
+  const sizeReduction = typeof metrics.size_reduction_pct === 'number' ? metrics.size_reduction_pct : null;
+  const bytesSaved = typeof metrics.bytes_saved === 'number' ? metrics.bytes_saved : null;
+  const compressionRatio =
+    typeof metrics.compression_ratio === 'number'
+      ? metrics.compression_ratio
+      : typeof metrics.png_output_ratio === 'number'
+        ? metrics.png_output_ratio
+        : null;
+
+  const ssimAvailable = typeof metrics.ssim === 'number';
+  const processingMsAvailable = typeof metrics.processing_time_ms === 'number';
 
   return (
     <div className="glass-card p-6 mt-6">
@@ -18,65 +44,79 @@ export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
         {t('metrics.title')}
       </h3>
 
-      {metrics && metrics.png_output_ratio < 1 && (
+      {metrics.png_output_ratio < 1 && (
         <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl flex items-start gap-3">
           <svg className="w-5 h-5 shrink-0 mt-0.5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />      
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div className="text-sm">
             <p className="font-bold">Warning</p>
-            <p>{language === 'id' ? 'Output PNG lebih besar dari file yang diunggah. Hal ini dapat terjadi karena kompresi matriks SVD dan kompresi byte PNG berbeda.' : 'PNG output is larger than the uploaded file. This can happen because SVD matrix compression and PNG byte compression are different.'}</p>
+            <p>{language === 'id' ? 'Output PNG lebih besar dari file asli. Wajar untuk sebagian gambar.' : 'PNG output is larger than original file. This can happen for some images.'}</p>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-
         <MetricCard
           title={t('metrics.rankUsedRecommended')}
-          value={metrics ? `${metrics.rank} / ${metrics.recommended_rank}` : "-"}
-          helper={language === 'id' ? 'Rank k dipilih vs direkomendasikan.' : 'Rank k chosen vs recommended.'}
+          value={`${metrics.rank} / ${metrics.recommended_rank}`}
+          helper={language === 'id' ? 'Rank dipakai vs rekomendasi.' : 'Rank used vs recommended.'}
         />
 
         <MetricCard
           title={t('metrics.energyRetained')}
-          value={metrics ? `${(metrics.retained_energy * 100).toFixed(2)}%` : "-"}
-          helper={language === 'id' ? 'Energi yang dipertahankan oleh nilai singular yang dipilih. Tidak sama dengan kualitas visual.' : 'Energy preserved by selected singular values. Not the same as visual quality.'}
+          value={formatPercent(metrics.retained_energy * 100)}
+          helper={language === 'id' ? 'Varians SVD yang dipertahankan.' : 'Retained SVD variance.'}
         />
 
-        <MetricCard
-          title={t('metrics.svdMatrixRatio')}
-          value={metrics ? `${metrics.svd_compression_ratio.toFixed(2)}x` : "-"}
-          helper={language === 'id' ? 'Estimasi teoretis penyimpanan matriks low-rank.' : 'Theoretical low-rank matrix storage estimate.'}
-        />
+        {compressionRatio !== null && (
+          <MetricCard
+            title={language === 'id' ? 'Rasio Kompresi' : 'Compression Ratio'}
+            value={formatRatio(compressionRatio)}
+            helper={language === 'id' ? 'Ukuran asli dibanding ukuran terkompresi.' : 'Original size divided by compressed size.'}
+          />
+        )}
 
-        <MetricCard
-          title={t('metrics.pngOutputRatio')}
-          value={metrics ? `${metrics.png_output_ratio.toFixed(2)}x` : "-"}
-          helper={language === 'id' ? 'Perbandingan ukuran byte PNG yang di-encode aktual.' : 'Actual encoded PNG byte-size comparison.'}
-        />
+        {sizeReduction !== null && bytesSaved !== null && (
+          <MetricCard
+            title={language === 'id' ? 'Penghematan Ukuran' : 'Size Reduction'}
+            value={formatPercent(sizeReduction)}
+            helper={language === 'id' ? `${formatBytes(bytesSaved)} lebih kecil.` : `${formatBytes(bytesSaved)} saved.`}
+          />
+        )}
 
-        <div className="sm:col-span-2 md:col-span-4 p-4 bg-white/60 rounded-2xl border border-gray-100 mt-2">   
+        {processingMsAvailable && (
+          <MetricCard
+            title={language === 'id' ? 'Waktu Proses' : 'Processing Time'}
+            value={`${metrics.processing_time_ms!.toFixed(0)} ms`}
+            helper={language === 'id' ? 'Waktu kompresi backend.' : 'Backend compression duration.'}
+          />
+        )}
+
+        {ssimAvailable && (
+          <MetricCard
+            title="SSIM"
+            value={metrics.ssim!.toFixed(4)}
+            helper={language === 'id' ? 'Kemiripan struktural (0-1).' : 'Structural similarity score (0-1).'}
+          />
+        )}
+
+        <div className="sm:col-span-2 md:col-span-4 p-4 bg-white/60 rounded-2xl border border-gray-100 mt-2">
           <p className="text-sm font-semibold text-gray-700 mb-1">{t('metrics.msePsnr')}</p>
           <div className="font-bold font-mono text-xl flex flex-wrap gap-x-8 gap-y-2 text-primary">
-            {metrics ? (
-              <>
-                <span>{metrics.mse.toFixed(2)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">MSE</span></span>
-                <span>{metrics.psnr.toFixed(2)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">dB</span></span>
-              </>
-            ) : "-"}
+            <span>{metrics.mse.toFixed(2)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">MSE</span></span>
+            <span>{formatDb(metrics.psnr)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">PSNR</span></span>
+            {ssimAvailable && (
+              <span>{metrics.ssim!.toFixed(4)} <span className="text-sm text-gray-500 font-sans font-normal ml-1">SSIM</span></span>
+            )}
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            {language === 'id' ? 'Metrik kesalahan menunjukkan keakuratan rekonstruksi visual.' : 'Error metrics indicating visual reconstruction accuracy.'}
-          </p>
         </div>
-
       </div>
     </div>
   );
 };
 
-const MetricCard = ({ title, value, helper }: { title: string, value: string, helper: string }) => (
+const MetricCard = ({ title, value, helper }: { title: string; value: string; helper: string }) => (
   <div className="p-4 bg-white/60 rounded-2xl border border-gray-100 flex flex-col justify-between">
     <div>
       <p className="text-sm font-semibold text-gray-700 mb-1">{title}</p>
