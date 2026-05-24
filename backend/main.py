@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import io
 import base64
+import os
 from PIL import Image
 import numpy as np
 
@@ -19,10 +20,21 @@ from svd_utils import (
 
 app = FastAPI(title="Aproximed API")
 
+def get_allowed_origins() -> list[str]:
+    origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "")
+
+    for origin in frontend_origin.split(","):
+        clean_origin = origin.strip()
+        if clean_origin and clean_origin not in origins:
+            origins.append(clean_origin)
+
+    return origins
+
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,6 +43,10 @@ app.add_middleware(
 @app.get("/")
 def health_check():
     return {"message": "Aproximed API is running"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.post("/analyze")
 async def analyze_image(image: UploadFile = File(...)):

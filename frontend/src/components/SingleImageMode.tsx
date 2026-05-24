@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { RankControls } from './RankControls';
 import { ImageCompare } from './ImageCompare';
 import { MetricsPanel } from './MetricsPanel';
+import { analyzeImage, compressImage } from '../lib/api';
 import type { CompressionResponse } from '../types/compression';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -60,22 +61,12 @@ export const SingleImageMode: React.FC = () => {
 
     setIsAnalyzing(true);
     try {
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const response = await fetch("http://localhost:8000/analyze", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRecommendedRank(data.recommended_rank);
-        if (data.max_rank) setMaxRank(data.max_rank);
-        setRank(data.recommended_rank);
-      }
+      const data = await analyzeImage(file);
+      setRecommendedRank(data.recommended_rank);
+      if (data.max_rank) setMaxRank(data.max_rank);
+      setRank(data.recommended_rank);
     } catch (err) {
-      console.error("Analysis failed:", err);
+      setError(err instanceof Error ? err.message : "Image analysis failed");
     } finally {
       setIsAnalyzing(false);
     }
@@ -109,21 +100,7 @@ export const SingleImageMode: React.FC = () => {
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("image", imageFile);
-      formData.append("rank", rank.toString());
-
-      const response = await fetch("http://localhost:8000/compress", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || "Compression failed");
-      }
-
-      const data: CompressionResponse = await response.json();
+      const data: CompressionResponse = await compressImage(imageFile, rank);
       setCompressedImage(`data:image/png;base64,${data.compressed_image_base64}`);
 
       setRecommendedRank(data.recommended_rank);

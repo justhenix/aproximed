@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { compressImage } from '../lib/api';
 import type { CompressionResponse } from '../types/compression';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -107,21 +108,7 @@ export const BatchAnalysisMode: React.FC = () => {
       setBatchFiles([...updatedFiles]);
 
       try {
-        const formData = new FormData();
-        formData.append("image", updatedFiles[i].file);
-        formData.append("rank", batchRank.toString());
-
-        const response = await fetch("http://localhost:8000/compress", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.detail || "Compression failed");
-        }
-
-        const data: CompressionResponse = await response.json();
+        const data: CompressionResponse = await compressImage(updatedFiles[i].file, batchRank);
         updatedFiles[i].status = 'done';
         updatedFiles[i].metrics = data;
       } catch (err) {

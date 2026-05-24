@@ -11,7 +11,7 @@ export const AppPage: React.FC = () => {
 
   useEffect(() => {
     healthCheck().then(data => {
-      if (data && data.message) {
+      if (data && (data.status === 'ok' || data.message)) {
         setApiStatus('online');
       } else {
         setApiStatus("offline");
