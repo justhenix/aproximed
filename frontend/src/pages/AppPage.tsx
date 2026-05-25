@@ -26,27 +26,27 @@ export const AppPage: React.FC = () => {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 space-y-8 flex flex-col items-center max-w-6xl mx-auto">
-      <header className="text-center mb-6 w-full">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{t('app.title')}</h1>
-        <p className="text-gray-600">{t('app.subtitle')}</p>
-        
+    <div className="animate-in fade-in duration-500 space-y-6 sm:space-y-8 flex flex-col items-center max-w-6xl mx-auto w-full min-w-0">
+      <header className="text-center mb-2 sm:mb-6 w-full px-1">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 text-balance">{t('app.title')}</h1>
+        <p className="text-sm sm:text-base text-gray-600 text-pretty">{t('app.subtitle')}</p>
+
         <div className="mt-3 text-xs text-gray-500 font-mono flex items-center justify-center gap-2 bg-white/50 inline-flex px-3 py-1 rounded-full border border-gray-100">
           <div className={`w-2 h-2 rounded-full ${apiStatus === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></div>
           {getApiStatusText()}
         </div>
       </header>
 
-      <div className="flex bg-gray-100 p-1 rounded-xl w-full max-w-sm mx-auto shadow-inner mb-2">
-        <button 
+      <div className="grid grid-cols-2 bg-gray-100 p-1 rounded-xl w-full max-w-sm mx-auto shadow-inner mb-2 gap-1">
+        <button
           onClick={() => setMode('single')}
-          className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${mode === 'single' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`min-h-11 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${mode === 'single' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
         >
           {t('app.modeSingle')}
         </button>
-        <button 
+        <button
           onClick={() => setMode('batch')}
-          className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${mode === 'batch' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`min-h-11 py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${mode === 'batch' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
         >
           {t('app.modeBatch')}
         </button>

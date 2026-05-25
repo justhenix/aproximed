@@ -32,7 +32,6 @@ export const RankControls: React.FC<Props> = ({
   disabled,
   recommendedRank,
   selectedPreset,
-  isGrayscale,
   maxRank = 200,
   isAnalyzing = false,
 }) => {
@@ -56,7 +55,7 @@ export const RankControls: React.FC<Props> = ({
   };
 
   return (
-    <div className="glass-card p-5 space-y-4">
+    <div className="glass-card p-4 sm:p-5 space-y-4 relative min-w-0">
       {isAnalyzing && (
         <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-xl">
           <div className="flex items-center gap-2 text-primary font-medium bg-white px-4 py-2 rounded-full shadow-lg border border-primary/10">
@@ -66,21 +65,19 @@ export const RankControls: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
             <h3 className="font-bold text-gray-900">{t('rank.title')}</h3>
-            <button onClick={() => setShowInfo(!showInfo)} className="text-gray-400 hover:text-primary transition-colors text-xs underline">
-                Apa itu rank?
+            <button onClick={() => setShowInfo(!showInfo)} className="text-gray-400 hover:text-primary transition-colors text-xs underline whitespace-nowrap">
+                {t('rank.whatIs')}
             </button>
         </div>
-        <span className="font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-md">Rank k: {rank}</span>
+        <span className="font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-md text-sm whitespace-nowrap">Rank k: {rank}</span>
       </div>
 
-      <br />
-
       {showInfo && (
-        <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
-          Rank menentukan jumlah komponen SVD yang dipertahankan. Rank rendah memberi kompresi lebih kuat tetapi dapat mengaburkan detail.
+        <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100 wrap-break-word">
+          {t('rank.whatIsBody')}
         </p>
       )}
 
@@ -110,16 +107,16 @@ export const RankControls: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 min-h-[1.5rem]">
-        <p className="text-xs text-gray-500 truncate">{hint}</p>
-        {isLowQuality && <span className="text-[10px] uppercase font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">{t('rank.blurWarningChip')}</span>}
-        {isHighQuality && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">{t('rank.safeDetailChip')}</span>}
+      <div className="flex items-start justify-between gap-2 min-h-6">
+        <p className="text-xs text-gray-500 min-w-0 wrap-break-word flex-1">{hint}</p>
+        {isLowQuality && <span className="text-[10px] uppercase font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded shrink-0">{t('rank.blurWarningChip')}</span>}
+        {isHighQuality && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded shrink-0">{t('rank.safeDetailChip')}</span>}
       </div>
 
       <button
         onClick={onCompress}
         disabled={disabled || controlsDisabled}
-        className="w-full py-2.5 font-bold rounded-xl transition-all bg-linear-to-r from-primary to-secondary text-white hover:opacity-90 disabled:opacity-40"
+        className="w-full py-3 min-h-11 font-bold rounded-xl transition-all bg-linear-to-r from-primary to-secondary text-white hover:opacity-90 disabled:opacity-40"
       >
         {loading ? (
             <span className="flex items-center justify-center gap-2">

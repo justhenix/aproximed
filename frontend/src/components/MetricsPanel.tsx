@@ -72,12 +72,12 @@ const MetricCard = ({
   helper: React.ReactNode;
   valueClassName?: string;
 }) => (
-  <div className="p-4 bg-white/60 rounded-2xl border border-gray-100 flex flex-col justify-between">
-    <div>
-      <p className="text-sm font-semibold text-gray-700 mb-1">{title}</p>
-      <p className={`text-2xl font-bold font-mono mb-3 ${valueClassName}`}>{value}</p>
+  <div className="p-4 bg-white/60 rounded-2xl border border-gray-100 flex flex-col justify-between min-w-0">
+    <div className="min-w-0">
+      <p className="text-sm font-semibold text-gray-700 mb-1 wrap-break-word">{title}</p>
+      <p className={`text-xl sm:text-2xl font-bold font-mono mb-3 wrap-break-word ${valueClassName}`}>{value}</p>
     </div>
-    <div className="text-[10px] text-gray-500 leading-tight">{helper}</div>
+    <div className="text-[10px] text-gray-500 leading-tight wrap-break-word">{helper}</div>
   </div>
 );
 
@@ -120,18 +120,18 @@ export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
         : 'text-gray-800';
 
   return (
-    <div className="glass-card p-6 mt-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
-        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div className="glass-card p-4 sm:p-6 mt-4 sm:mt-6 min-w-0">
+      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-5 flex items-center gap-2">
+        <svg className="w-5 h-5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
         {t('metrics.title')}
       </h3>
 
-      <div className="space-y-6">
+      <div className="space-y-5 sm:space-y-6">
         <section>
           <SectionTitle>{t('metrics.coreSection')}</SectionTitle>
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <MetricCard
               title="MSE"
               value={mseValue}
@@ -162,7 +162,7 @@ export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
 
         <section>
           <SectionTitle>{t('metrics.compressionSection')}</SectionTitle>
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <MetricCard
               title={t('metrics.svdMatrixRatio')}
               value={svdMatrixRatioValue !== null ? formatRatio(svdMatrixRatioValue, locale) : 'N/A'}

@@ -201,20 +201,20 @@ export const SingleImageMode: React.FC = () => {
     : null;
 
   return (
-    <div className="w-full flex flex-col items-center space-y-8 max-w-6xl mx-auto">
+    <div className="w-full flex flex-col items-center space-y-6 sm:space-y-8 max-w-6xl mx-auto min-w-0">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-sm text-sm flex items-center gap-3 w-full max-w-3xl animate-in slide-in-from-top-2">
-          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-sm text-sm flex items-start gap-3 w-full max-w-3xl animate-in slide-in-from-top-2">
+          <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          {error}
+          <span className="min-w-0 wrap-break-word">{error}</span>
         </div>
       )}
 
       {!imageFile ? (
         <div className="w-full max-w-3xl">
           <div
-            className={`border-2 border-dashed rounded-2xl p-12 text-center bg-white cursor-pointer transition-all duration-200 flex flex-col items-center justify-center min-h-75 ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}`}
+            className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 md:p-12 text-center bg-white cursor-pointer transition-all duration-200 flex flex-col items-center justify-center min-h-60 sm:min-h-75 ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}`}
             onClick={() => {
               if (!isBusy) fileInputRef.current?.click();
             }}
@@ -222,14 +222,14 @@ export const SingleImageMode: React.FC = () => {
             onDragLeave={onDragLeave}
             onDrop={onDrop}
           >
-            <div className="text-gray-500 mb-6 flex flex-col items-center">
-              <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
-                <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <div className="text-gray-500 mb-5 sm:mb-6 flex flex-col items-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                <svg className="h-8 w-8 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
               </div>
-              <p className="text-xl font-bold text-gray-800">{t('single.uploadTitle')}</p>
-              <p className="text-sm mt-2">{t('single.uploadSubtitle')}</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-800 px-2 text-balance">{t('single.uploadTitle')}</p>
+              <p className="text-sm mt-2 px-2 text-pretty">{t('single.uploadSubtitle')}</p>
             </div>
             <input
               type="file"
@@ -246,22 +246,22 @@ export const SingleImageMode: React.FC = () => {
             <button
               type="button"
               disabled={isBusy}
-              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-6 py-3 min-h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('single.selectImage')}
             </button>
           </div>
         </div>
       ) : (
-        <div className="w-full flex flex-col items-center space-y-8 animate-in fade-in slide-in-from-bottom-4">
-          <div className="w-full max-w-3xl space-y-6">
-            <div className="glass-card p-4 flex items-center justify-between border border-gray-100 shadow-sm rounded-2xl bg-white/80">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+        <div className="w-full flex flex-col items-center space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="w-full max-w-3xl space-y-5 sm:space-y-6">
+            <div className="glass-card p-4 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 justify-between border border-gray-100 shadow-sm rounded-2xl bg-white/80 min-w-0">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
                   {originalPreview && <img src={originalPreview} alt="Preview" className="w-full h-full object-cover" />}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 truncate max-w-50 md:max-w-xs">{originalFilename}</h3>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-gray-900 truncate">{originalFilename}</h3>
                   <p className="text-xs text-gray-500">{formatFileSize(imageFile.size)}</p>
                 </div>
               </div>
@@ -269,7 +269,7 @@ export const SingleImageMode: React.FC = () => {
               <button
                 onClick={clearSelection}
                 disabled={isBusy}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 py-2 min-h-11 sm:min-h-0 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('single.changeImage')}
               </button>
@@ -297,7 +297,7 @@ export const SingleImageMode: React.FC = () => {
           </div>
 
           {(loading || compressedImage) && (
-            <div className="w-full max-w-5xl space-y-6 animate-in fade-in pt-4 border-t border-gray-100">
+            <div className="w-full max-w-5xl space-y-5 sm:space-y-6 animate-in fade-in pt-4 border-t border-gray-100">
               <ImageCompare
                 original={originalPreview}
                 compressed={compressedImage}

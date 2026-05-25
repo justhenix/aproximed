@@ -26,19 +26,19 @@ export const Navbar: React.FC = () => {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-0 px-0 transition-all duration-500">
-      <nav 
-        className={`flex items-center justify-between w-full transition-all duration-500 ${
-          isScrolled 
-            ? 'max-w-4xl mx-auto glass px-6 py-3 rounded-b-2xl border-x border-b' 
-            : 'max-w-6xl mx-auto bg-white/0 px-6 md:px-8 py-5 border border-transparent'
+      <nav
+        className={`flex items-center justify-between w-full gap-2 transition-all duration-500 ${
+          isScrolled
+            ? 'max-w-4xl mx-auto glass px-3 sm:px-6 py-2.5 sm:py-3 rounded-b-2xl border-x border-b'
+            : 'max-w-6xl mx-auto bg-white/0 px-4 sm:px-6 md:px-8 py-3 sm:py-5 border border-transparent'
         }`}
       >
         <NavLink to="/" onClick={() => {
           if (location.pathname === '/') {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
-        }} className="flex items-center">
-          <img src={logo} className="h-8 w-auto" alt="Aproximed" />
+        }} className="flex items-center shrink-0">
+          <img src={logo} className="h-7 sm:h-8 w-auto" alt="Aproximed" />
         </NavLink>
 
         <div className="hidden md:flex items-center gap-1">
@@ -55,8 +55,8 @@ export const Navbar: React.FC = () => {
                 }}
                 className={({ isActive: routerActive }) => `
                   px-4 py-2 rounded-full text-sm font-bold transition-all duration-300
-                  ${(routerActive || isActive) 
-                    ? 'text-primary bg-primary/10' 
+                  ${(routerActive || isActive)
+                    ? 'text-primary bg-primary/10'
                     : 'text-gray-600 hover:text-primary hover:bg-gray-100'}
                 `}
               >
@@ -66,11 +66,11 @@ export const Navbar: React.FC = () => {
           })}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-gray-100 rounded-full p-1 text-xs font-bold">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center bg-gray-100 rounded-full p-0.5 sm:p-1 text-[11px] sm:text-xs font-bold">
             <button
               onClick={() => setLanguage('en')}
-              className={`px-3 py-1 rounded-full transition-colors ${
+              className={`px-2 sm:px-3 py-1 rounded-full transition-colors min-h-7 sm:min-h-0 ${
                 language === 'en' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -78,21 +78,21 @@ export const Navbar: React.FC = () => {
             </button>
             <button
               onClick={() => setLanguage('id')}
-              className={`px-3 py-1 rounded-full transition-colors ${
+              className={`px-2 sm:px-3 py-1 rounded-full transition-colors min-h-7 sm:min-h-0 ${
                 language === 'id' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               ID
             </button>
           </div>
-          <NavLink 
+          <NavLink
             to="/app"
             onClick={() => {
               if (location.pathname === '/app') {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }
             }}
-            className="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-extrabold hover:bg-[#0046CC] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
+            className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-full bg-primary text-white text-xs sm:text-sm font-extrabold hover:bg-[#0046CC] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
           >
             {t('nav.openApp')}
           </NavLink>

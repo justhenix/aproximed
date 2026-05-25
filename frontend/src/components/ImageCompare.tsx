@@ -70,14 +70,14 @@ export const ImageCompare: React.FC<Props> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="glass-card p-4 flex flex-col h-full">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
+      <div className="glass-card p-4 flex flex-col h-full min-w-0">
         <h3 className="font-bold text-gray-900 mb-3 text-center">{t('compare.original')}</h3>
         <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center text-gray-400 border border-gray-100 overflow-hidden relative shadow-inner">
           {original ? (
             <img src={original} alt="Original" className="w-full h-full object-contain" />
           ) : (
-            <span className="text-sm font-medium">{language === 'id' ? 'Tidak ada gambar yang diunggah' : 'No image uploaded'}</span>
+            <span className="text-sm font-medium px-2 text-center">{language === 'id' ? 'Tidak ada gambar yang diunggah' : 'No image uploaded'}</span>
           )}
         </div>
         <div className="mt-3">
@@ -96,14 +96,14 @@ export const ImageCompare: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="glass-card p-4 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-3 px-2">
-          <h3 className="font-bold text-gray-900 mx-auto text-center translate-x-3">{t('compare.compressed')}</h3>
+      <div className="glass-card p-4 flex flex-col h-full min-w-0">
+        <div className="flex items-center justify-between mb-3 px-1 gap-2">
+          <h3 className="font-bold text-gray-900 text-center flex-1 min-w-0 truncate">{t('compare.compressed')}</h3>
           {compressed && !loading && (
             <button
               onClick={handleDownload}
               title={language === 'id' ? 'Unduh gambar terkompresi' : 'Download compressed image'}
-              className="p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg transition-colors"
+              className="p-2 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg transition-colors shrink-0"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -119,7 +119,7 @@ export const ImageCompare: React.FC<Props> = ({
           {compressed ? (
             <img src={compressed} alt="Compressed" className="w-full h-full object-contain" />
           ) : (
-            !loading && <span className="text-sm font-medium">{t('compare.awaitingCompression')}</span>
+            !loading && <span className="text-sm font-medium px-2 text-center">{t('compare.awaitingCompression')}</span>
           )}
         </div>
         <div className="mt-3">

@@ -27,10 +27,10 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-12 md:gap-16 lg:gap-20 animate-in fade-in duration-700 font-sans">
-      
+    <div className="flex flex-col gap-10 sm:gap-12 md:gap-16 lg:gap-20 animate-in fade-in duration-700 font-sans">
+
       {/* Hero Section with Matrix Grid Background */}
-      <section className="relative flex flex-col items-center justify-center text-center py-12 md:py-16 lg:py-[10vh]">
+      <section className="relative flex flex-col items-center justify-center text-center py-8 sm:py-12 md:py-16 lg:py-[10vh]">
         {/* Subtle Matrix Grid Background */}
         <div className="absolute inset-0 -z-10 opacity-40 mask-[radial-gradient(ellipse_at_center,white_80%,transparent)] pointer-events-none">
           <div className="absolute inset-0" style={{
@@ -40,82 +40,82 @@ export const LandingPage: React.FC = () => {
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter mb-6 leading-[0.98]">
-          {t('landing.titleLine1')} <br className="hidden md:block"/> 
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-slate-900 tracking-tight md:tracking-tighter mb-5 sm:mb-6 leading-[1.05] md:leading-[0.98] text-balance px-1">
+          {t('landing.titleLine1')} <br className="hidden md:block"/>
           <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-secondary">
             {t('landing.titleLine2')}
           </span>
         </h1>
 
         {/* Supporting text */}
-        <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-600 mb-10 leading-relaxed font-semibold">
+        <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-600 mb-8 sm:mb-10 leading-relaxed font-semibold text-pretty px-1">
           {t('landing.subtitle')}
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link 
-            to="/app" 
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-primary text-white font-extrabold hover:bg-[#0046CC] hover:shadow-[0_8px_24px_rgba(0,87,255,0.25)] hover:-translate-y-0.5 transition-all duration-300"
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full max-w-md sm:max-w-none mx-auto">
+          <Link
+            to="/app"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-primary text-white font-extrabold text-center hover:bg-[#0046CC] hover:shadow-[0_8px_24px_rgba(0,87,255,0.25)] hover:-translate-y-0.5 transition-all duration-300 min-h-11 flex items-center justify-center"
           >
             {t('landing.tryCompression')}
           </Link>
-          <Link 
-            to="/docs" 
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-slate-700 font-extrabold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-xs transition-all duration-300"
+          <Link
+            to="/docs"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-slate-700 font-extrabold text-center border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-xs transition-all duration-300 min-h-11 flex items-center justify-center"
           >
             {t('landing.readMethod')}
           </Link>
         </div>
-        
-        <p className="mt-8 text-xs text-slate-400 font-mono">
+
+        <p className="mt-6 sm:mt-8 text-xs text-slate-400 font-mono px-2 text-balance">
           {t('landing.disclaimer')}
         </p>
       </section>
 
       {/* SVD Reconstruction Preview Panel */}
-      <section className="max-w-4xl mx-auto px-4">
-        <div className="bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-3xl p-5 md:p-6 shadow-[0_12px_40px_rgba(0,0,0,0.03)] space-y-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
+      <section className="w-full max-w-4xl mx-auto">
+        <div className="bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 shadow-[0_12px_40px_rgba(0,0,0,0.03)] space-y-4 sm:space-y-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-4 min-w-0">
+            <div className="min-w-0">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
-                {t('preview.title')}
+                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shrink-0"></span>
+                <span className="truncate">{t('preview.title')}</span>
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">{t('preview.caseInfo')}</p>
+              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider truncate">{t('preview.caseInfo')}</p>
             </div>
-            <div className="flex gap-2 font-mono">
+            <div className="flex gap-2 font-mono flex-wrap">
               <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-bold">{t('preview.rankChip')}</span>
               <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md font-bold">{t('preview.retainedEnergy')}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-center">
             {/* Left Image Viewport */}
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 min-w-0">
               <span className="text-xs font-bold text-slate-500">{t('preview.original')}</span>
-              <div className="aspect-square w-full max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 shadow-xs">
+              <div className="aspect-square w-full max-w-40 sm:max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 shadow-xs">
                 <ChestXRaySVG isOriginal={true} labels={previewXrayLabels} />
               </div>
             </div>
 
             {/* Middle Decay Graph */}
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 min-w-0">
               <div className="flex flex-col items-center gap-1 text-center">
                 <span className="text-xs font-bold text-slate-500">{t('preview.decomposition')}</span>
                 <span className="text-[10px] text-slate-400 font-semibold leading-tight hidden sm:block">
                   {t('preview.decompositionCaption')}
                 </span>
               </div>
-              <div className="aspect-square w-full max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 p-3 flex flex-col justify-center shadow-xs">
+              <div className="aspect-square w-full max-w-40 sm:max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 p-3 flex flex-col justify-center shadow-xs">
                 <SpectrumDecompositionSVG labels={spectrumLabels} equation={t('preview.decompositionEquation')} />
               </div>
             </div>
 
             {/* Right Image Viewport */}
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 min-w-0">
               <span className="text-xs font-bold text-slate-500">{t('preview.reconstructed')}</span>
-              <div className="aspect-square w-full max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 shadow-xs relative">
+              <div className="aspect-square w-full max-w-40 sm:max-w-45 rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 shadow-xs relative">
                 <div className="w-full h-full blur-[1px] contrast-[1.03]">
                   <ChestXRaySVG isOriginal={false} labels={previewXrayLabels} />
                 </div>
@@ -127,41 +127,41 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100 text-center font-sans">
-            <div className="space-y-0.5">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('preview.peakSnr')}</div>
-              <div className="text-sm font-extrabold text-slate-900">{t('preview.peakSnrValue')}</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-4 border-t border-slate-100 text-center font-sans">
+            <div className="space-y-0.5 min-w-0">
+              <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">{t('preview.peakSnr')}</div>
+              <div className="text-xs sm:text-sm font-extrabold text-slate-900 wrap-break-word">{t('preview.peakSnrValue')}</div>
             </div>
-            <div className="space-y-0.5 border-x border-slate-100">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('preview.ssim')}</div>
-              <div className="text-sm font-extrabold text-slate-900">{t('preview.ssimValue')}</div>
+            <div className="space-y-0.5 border-x border-slate-100 min-w-0">
+              <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">{t('preview.ssim')}</div>
+              <div className="text-xs sm:text-sm font-extrabold text-slate-900 wrap-break-word">{t('preview.ssimValue')}</div>
             </div>
-            <div className="space-y-0.5">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('preview.compressionRatio')}</div>
-              <div className="text-sm font-extrabold text-slate-900">{t('preview.compressionRatioValue')}</div>
+            <div className="space-y-0.5 min-w-0">
+              <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">{t('preview.compressionRatio')}</div>
+              <div className="text-xs sm:text-sm font-extrabold text-slate-900 wrap-break-word">{t('preview.compressionRatioValue')}</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Feature Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <FeatureCard 
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <FeatureCard
           icon={<Upload className="w-6 h-6 text-primary" />}
           title={t('landing.features.uploadTitle')}
           description={t('landing.features.uploadDesc')}
         />
-        <FeatureCard 
+        <FeatureCard
           icon={<SlidersHorizontal className="w-6 h-6 text-primary" />}
           title={t('landing.features.rankTitle')}
           description={t('landing.features.rankDesc')}
         />
-        <FeatureCard 
+        <FeatureCard
           icon={<ImageIcon className="w-6 h-6 text-primary" />}
           title={t('landing.features.compareTitle')}
           description={t('landing.features.compareDesc')}
         />
-        <FeatureCard 
+        <FeatureCard
           icon={<Activity className="w-6 h-6 text-primary" />}
           title={t('landing.features.metricsTitle')}
           description={t('landing.features.metricsDesc')}
@@ -169,7 +169,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Flow Section */}
-      <section className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm relative overflow-hidden">
+      <section className="bg-white border border-slate-100 rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-12 shadow-sm relative overflow-hidden">
         {/* Subtle engineering dot grid background */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <div className="absolute inset-0" style={{
@@ -177,11 +177,11 @@ export const LandingPage: React.FC = () => {
             backgroundSize: '16px 16px'
           }}></div>
         </div>
-        
+
         <div className="relative z-10">
-          <h2 className="text-2xl md:text-3xl font-black mb-10 text-center text-slate-900">{t('landing.howItWorks')}</h2>
-          
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <h2 className="text-2xl md:text-3xl font-black mb-6 sm:mb-10 text-center text-slate-900 text-balance">{t('landing.howItWorks')}</h2>
+
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
             <FlowStep number="1" title={t('landing.flow.step1.title')} desc={t('landing.flow.step1.desc')} />
             <FlowArrow />
             <FlowStep number="2" title={t('landing.flow.step2.title')} desc={t('landing.flow.step2.desc')} />
