@@ -13,7 +13,7 @@ export const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-primary/20 selection:text-primary overflow-x-hidden">
       <Navbar />
-      <main className="grow pt-20 sm:pt-24 md:pt-28 pb-10 md:pb-16 px-4 md:px-8 max-w-6xl w-full mx-auto min-w-0">
+      <main className="grow pt-24 sm:pt-24 md:pt-28 pb-10 md:pb-16 px-4 md:px-8 max-w-6xl w-full mx-auto min-w-0">
         <Outlet />
       </main>
       <Footer />
