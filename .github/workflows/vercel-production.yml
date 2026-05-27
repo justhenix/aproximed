@@ -1,0 +1,55 @@
+name: Deploy Vercel production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: true
+
+env:
+  VERCEL_CLI_VERSION: 54.5.0
+  VERCEL_ORG_ID: team_qxICrqsbXODBUP9xzf6r5c5m
+
+jobs:
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      VERCEL_PROJECT_ID: prj_Ih7ybNdfEu6sSZ6M4fjwYhDaodh8
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Vercel token
+        run: test -n "$VERCEL_TOKEN" || (echo "Missing GitHub secret: VERCEL_TOKEN" && exit 1)
+
+      - name: Deploy API to Vercel
+        run: npx --yes vercel@${{ env.VERCEL_CLI_VERSION }} deploy --prod --yes --token="$VERCEL_TOKEN"
+
+  deploy-frontend:
+    name: Deploy frontend
+    runs-on: ubuntu-latest
+    needs: deploy-api
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VERCEL_PROJECT_ID: prj_l5vDG6ThYHSEwHh83oOCWtkokrn9
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Vercel token
+        run: test -n "$VERCEL_TOKEN" || (echo "Missing GitHub secret: VERCEL_TOKEN" && exit 1)
+
+      - name: Deploy frontend to Vercel
+        run: npx --yes vercel@${{ env.VERCEL_CLI_VERSION }} deploy --prod --yes --token="$VERCEL_TOKEN"

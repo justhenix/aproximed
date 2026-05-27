@@ -2,6 +2,26 @@
 
 Deploy backend first, frontend second.
 
+## Automatic Deploys
+
+GitHub Actions deploys both Vercel projects on every push to `main`:
+
+- API project: `aproximed-api`
+- Frontend project: `aproximed`
+
+Required GitHub secret:
+
+- `VERCEL_TOKEN`
+
+Create token in Vercel, then add it in GitHub repo settings:
+`Settings -> Secrets and variables -> Actions -> New repository secret`.
+
+Manual run:
+
+```bash
+gh workflow run "Deploy Vercel production"
+```
+
 ## Project A: Frontend (Vercel)
 
 - Root Directory: `frontend`
