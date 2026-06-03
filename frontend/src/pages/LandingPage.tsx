@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, SlidersHorizontal, Image as ImageIcon, Activity } from 'lucide-react';
+
 import { useI18n } from '../i18n/I18nContext';
 
 export const LandingPage: React.FC = () => {
@@ -144,29 +144,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Feature Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <FeatureCard
-          icon={<Upload className="w-6 h-6 text-primary" />}
-          title={t('landing.features.uploadTitle')}
-          description={t('landing.features.uploadDesc')}
-        />
-        <FeatureCard
-          icon={<SlidersHorizontal className="w-6 h-6 text-primary" />}
-          title={t('landing.features.rankTitle')}
-          description={t('landing.features.rankDesc')}
-        />
-        <FeatureCard
-          icon={<ImageIcon className="w-6 h-6 text-primary" />}
-          title={t('landing.features.compareTitle')}
-          description={t('landing.features.compareDesc')}
-        />
-        <FeatureCard
-          icon={<Activity className="w-6 h-6 text-primary" />}
-          title={t('landing.features.metricsTitle')}
-          description={t('landing.features.metricsDesc')}
-        />
-      </section>
+
 
       {/* Flow Section */}
       <section className="bg-white border border-slate-100 rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-12 shadow-sm relative overflow-hidden">
@@ -181,7 +159,7 @@ export const LandingPage: React.FC = () => {
         <div className="relative z-10">
           <h2 className="text-2xl md:text-3xl font-black mb-6 sm:mb-10 text-center text-slate-900 text-balance">{t('landing.howItWorks')}</h2>
 
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col md:flex-row items-stretch justify-between gap-3 sm:gap-4">
             <FlowStep number="1" title={t('landing.flow.step1.title')} desc={t('landing.flow.step1.desc')} />
             <FlowArrow />
             <FlowStep number="2" title={t('landing.flow.step2.title')} desc={t('landing.flow.step2.desc')} />
@@ -197,15 +175,7 @@ export const LandingPage: React.FC = () => {
   );
 };
 
-const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
-  <div className="glass-card p-6 flex flex-col items-start text-left">
-    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-      {icon}
-    </div>
-    <h3 className="text-lg font-black text-slate-900 mb-2">{title}</h3>
-    <p className="text-sm text-slate-600 leading-relaxed font-semibold">{description}</p>
-  </div>
-);
+
 
 const FlowStep = ({ number, title, desc }: { number: string, title: string, desc: string }) => (
   <div className="flex-1 w-full bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:border-primary/30 transition-colors">
@@ -218,7 +188,7 @@ const FlowStep = ({ number, title, desc }: { number: string, title: string, desc
 );
 
 const FlowArrow = () => (
-  <div className="hidden md:flex text-slate-300">
+  <div className="hidden md:flex items-center justify-center text-slate-300 shrink-0">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 12h14M12 5l7 7-7 7"/>
     </svg>

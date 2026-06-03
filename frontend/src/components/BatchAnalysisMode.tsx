@@ -284,11 +284,7 @@ export const BatchAnalysisMode: React.FC = () => {
                 disabled={isProcessing || useAdaptiveRank}
                 className="w-full accent-primary disabled:opacity-40"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                {useAdaptiveRank
-                  ? t('batch.adaptiveHint')
-                  : t('batch.manualHint')}
-              </p>
+
             </div>
             <div className="grid grid-cols-2 md:flex md:flex-row gap-2 w-full md:w-auto">
               <button

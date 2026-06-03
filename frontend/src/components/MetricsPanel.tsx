@@ -109,19 +109,51 @@ const SingularValueChart = ({
         <span className="text-xs font-mono font-bold text-blue-700">k = {rank}</span>
       </div>
 
-      <div className="mt-4 flex h-28 items-end gap-1 rounded-xl border border-white/80 bg-white/70 p-3">
-        {values.map((value, index) => {
-          const height = `${Math.max(4, Math.min(100, value * 100))}%`;
-          const isKept = index <= rankIndex;
-          return (
-            <div
-              key={`${value}-${index}`}
-              className={`flex-1 rounded-t-sm ${isKept ? 'bg-blue-600' : 'bg-gray-200'}`}
-              style={{ height }}
-              title={`${t('metrics.singularValueTitle')} ${(value * 100).toFixed(1)}%`}
-            />
-          );
-        })}
+      <div className="mt-4 flex flex-col gap-1">
+        <div className="flex h-32 gap-2">
+          {/* Y-Axis */}
+          <div className="flex flex-col justify-between text-[10px] text-gray-400 font-mono py-1 pb-4">
+            <span>100%</span>
+            <span>0%</span>
+          </div>
+          
+          {/* Chart area */}
+          <div className="relative flex-1 flex items-end gap-0.5 rounded-xl border-l border-b border-gray-300/50 bg-white/70 p-1">
+            {values.map((value, index) => {
+              const visualValue = Math.pow(value, 0.25);
+              const height = `${Math.max(2, Math.min(100, visualValue * 100))}%`;
+              const isKept = index <= rankIndex;
+              const currentRank = Math.max(1, Math.round((index / Math.max(1, values.length - 1)) * safeMaxRank));
+              
+              return (
+                <div
+                  key={`${value}-${index}`}
+                  className="group relative flex-1 h-full flex items-end"
+                >
+                  <div
+                    className={`w-full rounded-t-sm transition-colors duration-300 ${isKept ? 'bg-blue-600 group-hover:bg-blue-400' : 'bg-gray-200 group-hover:bg-gray-400'}`}
+                    style={{ height }}
+                  />
+                  {/* Custom Tooltip */}
+                  <div className="pointer-events-none absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10 left-1/2 -translate-x-1/2">
+                    <div className="bg-gray-900/90 text-white text-[10px] font-mono rounded px-2 py-1 whitespace-nowrap shadow-md">
+                      k={currentRank}
+                      <br />
+                      val={(value * 100).toFixed(1)}%
+                    </div>
+                    <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900/90" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* X-Axis */}
+        <div className="flex justify-between text-[10px] text-gray-400 font-mono pl-8 pr-1">
+          <span>k=1</span>
+          <span>k={safeMaxRank}</span>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 text-center text-xs font-semibold text-gray-700">

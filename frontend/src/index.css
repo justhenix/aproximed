@@ -10,7 +10,7 @@
 }
 
 body {
-  @apply bg-linear-to-b from-white to-[#f0f8ff] text-gray-900 min-h-screen antialiased font-sans;
+  @apply bg-linear-to-b from-[#faf9f6] to-[#f4f3ee] text-gray-900 min-h-screen antialiased font-sans;
   overflow-x: hidden;
 }
 
