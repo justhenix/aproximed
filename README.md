@@ -1,90 +1,26 @@
 # Aproximed
 
-Aproximed is an educational web prototype for exploring **SVD-based X-Ray image compression**.
+Aproximed is a web prototype for **SVD-based X-ray image compression**. Upload image → choose rank-k or use recommended rank → compare original vs reconstructed image → inspect compression metrics.
 
-Users can upload an X-ray image, choose a rank-k value, reconstruct the compressed image, and inspect image quality metrics such as MSE, PSNR, retained SVD energy, SVD matrix ratio, and PNG output ratio.
-
-This project is built for compression analysis and learning purposes only. It is **not intended for medical diagnosis**.
+> Educational prototype only. Not for medical diagnosis.
 
 ## Features
 
-- Single-image X-ray compression using Singular Value Decomposition
-- Rank-k control with recommended rank analysis
-- Original vs reconstructed image comparison
-- Compression quality metrics:
-  - MSE
-  - PSNR
-  - Retained SVD energy
-  - SVD matrix ratio
-  - PNG output ratio
-- Batch analysis mode for multiple images
-- CSV export for batch results
-- EN/ID language toggle
-- Responsive React frontend with a clean UI
+- Single-image compression with rank-k control
+- Recommended rank analysis
+- Batch image compression
+- Metrics: MSE, PSNR, SSIM, retained SVD energy, SVD ratio, PNG output ratio, size reduction
+- Batch CSV report + compressed images ZIP
+- EN/ID interface
 
-## Tech Stack
+## Stack
 
-### Frontend
+**Frontend:** Vite, React, TypeScript, Tailwind CSS, React Router, Bun  
+**Backend:** FastAPI, Python, NumPy, Pillow, scikit-image, Uvicorn
 
-- Vite
-- React
-- TypeScript
-- Tailwind CSS
-- React Router
-- Bun
+## Run Locally
 
-### Backend
-
-- Python 3.12
-- FastAPI
-- NumPy
-- Pillow
-- Scikit-Image
-
-## Project Structure
-
-```txt
-aproximed/
-  backend/
-    main.py
-    requirements.txt
-    svd_utils.py
-
-  frontend/
-    src/
-      components/
-      pages/
-      layouts/
-      i18n/
-      types/
-```
-
-## How It Works
-
-A grayscale X-ray image is represented as a matrix `A`.
-
-The backend applies Singular Value Decomposition:
-
-```txt
-A = U Sigma V^T
-```
-
-Then only the top `k` singular values are retained:
-
-```txt
-A_k = U_k Sigma_k V_k^T
-```
-
-A lower rank value usually gives stronger compression, but it may remove fine image details. A higher rank value preserves more structure, but the compression becomes weaker.
-
-## How to Run Locally
-
-This project uses a separate frontend and backend.  
-It is recommended to use two active terminals.
-
-### 1. Run the Backend
-
-Open the first terminal:
+Backend:
 
 ```bash
 cd backend
@@ -92,15 +28,9 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-The backend will run at:
+Runs at `http://localhost:8000`.
 
-```txt
-http://localhost:8000
-```
-
-### 2. Run the Frontend
-
-Open the second terminal:
+Frontend:
 
 ```bash
 cd frontend
@@ -108,52 +38,69 @@ bun install
 bun run dev
 ```
 
-The frontend will run at:
+Runs at `http://localhost:5173`.
 
-```txt
-http://localhost:5173
+For deployed frontend, set:
+
+```env
+VITE_API_URL=https://your-backend-url
 ```
 
-## API Endpoints
+Local dev defaults to `http://localhost:8000`.
 
-### Health Check
+## API
 
-```txt
-GET /
+<details>
+<summary>Endpoints</summary>
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/` | API status message |
+| `GET` | `/health` | Health check |
+| `POST` | `/analyze` | Analyze image + recommend rank |
+| `POST` | `/compress` | Compress one image |
+| `POST` | `/batch/images` | Compress multiple uploaded images |
+
+`/analyze` accepts form-data `image`.
+
+`/compress` accepts form-data `image` + `rank`.
+
+`/batch/images` accepts form-data `images` + `rank`, with optional `include_report_csv`, `include_compressed_zip`, and `include_all_results_zip`.
+
+</details>
+
+## Input Rules
+
+Supported images: `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tif`, `.tiff`.
+
+Max upload size: `10 MB` per image.
+
+Backend max SVD processing dimension defaults to `1024`, configurable with:
+
+```env
+MAX_SVD_DIMENSION=1024
 ```
 
-Checks whether the backend API is running.
-
-### Analyze Image
+## Project Structure
 
 ```txt
-POST /analyze
+aproximed/
+  backend/   FastAPI API + SVD utilities
+  frontend/  React frontend
 ```
 
-Analyzes the uploaded image and returns the recommended rank.
+## Build Frontend
 
-### Compress Image
-
-```txt
-POST /compress
+```bash
+cd frontend
+bun run build
 ```
-
-Compresses the uploaded image using the selected rank-k value and returns the reconstructed image with compression metrics.
-
-### Batch Compress (Direct Upload)
-
-```txt
-POST /batch/images
-```
-
-Uploads multiple images and returns per-image metrics along with optional CSV and ZIP outputs. CSV/ZIP are outputs, not inputs.
 
 ## Notes
 
-Aproximed is a mathematical and educational prototype.  
-It demonstrates how low-rank matrix approximation affects X-ray image reconstruction quality.
-
-This project does not replace clinical image compression standards, medical software, or diagnostic workflows.
+- Compressed output format = PNG.
+- `rank <= 0` enables backend adaptive rank mode.
+- CSV/ZIP are generated outputs for batch compression, not upload inputs.
 
 ## Credit
 
