@@ -4,38 +4,45 @@ import io
 import numpy as np
 from PIL import Image
 
-# Image preprocessing: convert to grayscale and to numpy array
-def preprocess_image(image: Image.Image) -> np.ndarray:
+def preprocess_image(image: Image.Image, max_dimension: int | None = None) -> np.ndarray:
     grayscale_image = image.convert("L")
+    if max_dimension and max_dimension > 0:
+        width, height = grayscale_image.size
+        longest_side = max(width, height)
+        if longest_side > max_dimension:
+            scale = max_dimension / longest_side
+            next_size = (
+                max(1, round(width * scale)),
+                max(1, round(height * scale)),
+            )
+            grayscale_image = grayscale_image.resize(next_size, Image.Resampling.LANCZOS)
     matrix = np.array(grayscale_image, dtype=np.float32)
     return matrix
 
-# Image postprocessing: convert numpy array back to PIL Image
-def compress_matrix_svd(matrix: np.ndarray, rank: int) -> np.ndarray:
-    max_rank = min(matrix.shape)
-    
-    # Ensure the rank is within valid bounds
+def _clamp_rank(rank: int, max_rank: int) -> int:
     if rank < 1:
         raise ValueError("rank must be at least 1")
-    
-    # If the specified rank exceeds the maximum possible rank,
-    # set it to the maximum
-    if rank > max_rank:
-        rank = max_rank
-    
-    # Perform Singular Value Decomposition (SVD) on the input matrix    
-    U, S, Vt = np.linalg.svd(matrix, full_matrices=False)
-    
-    # Retain only the top 'rank' singular values and corresponding vectors
+    return min(rank, max_rank)
+
+def decompose_matrix_svd(matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    return np.linalg.svd(matrix, full_matrices=False)
+
+def calculate_singular_values(matrix: np.ndarray) -> np.ndarray:
+    return np.linalg.svd(matrix, full_matrices=False, compute_uv=False)
+
+def reconstruct_matrix_svd(U: np.ndarray, S: np.ndarray, Vt: np.ndarray, rank: int) -> np.ndarray:
+    rank = _clamp_rank(rank, len(S))
     U_k = U[:, :rank]
     S_k = S[:rank]
     Vt_k = Vt[:rank, :]
-    
-    # Reconstruct the compressed matrix using the retained components
     compressed_matrix = (U_k * S_k) @ Vt_k
     compressed_matrix = np.clip(compressed_matrix, 0, 255)
-    
     return compressed_matrix.astype(np.float32)
+
+# Image postprocessing: convert numpy array back to PIL Image
+def compress_matrix_svd(matrix: np.ndarray, rank: int) -> np.ndarray:
+    U, S, Vt = decompose_matrix_svd(matrix)
+    return reconstruct_matrix_svd(U, S, Vt, rank)
 
 # Calculation for average of squared pixel errors (MSE)
 def calculate_mse(original: np.ndarray, compressed: np.ndarray) -> float:
@@ -107,9 +114,9 @@ def calculate_recommended_rank(singular_values: np.ndarray, target_energy: float
 
 def calculate_rank_presets(
     matrix: np.ndarray, 
-    U: np.ndarray, 
+    U: np.ndarray | None,
     S: np.ndarray, 
-    Vt: np.ndarray, 
+    Vt: np.ndarray | None,
     is_medical_or_grayscale: bool, 
     ssim_metric=None
 ) -> dict:
@@ -146,63 +153,40 @@ def calculate_rank_presets(
         }
     
     cumulative_energy = np.cumsum(energy) / total_energy
-    
-    def test_rank(k: int) -> dict:
+    pixel_count = max(1, height * width)
+
+    def stats_for_rank(k: int) -> dict:
         k = max(1, min(k, max_rank))
-        U_k = U[:, :k]
-        S_k = S[:k]
-        Vt_k = Vt[:k, :]
-        comp = (U_k * S_k) @ Vt_k
-        comp = np.clip(comp, 0, 255).astype(np.float32)
-        
-        diff = matrix.astype(np.float32) - comp
-        mse = np.mean(diff ** 2)
+        retained = float(cumulative_energy[k - 1])
+        discarded_energy = max(0.0, float(total_energy) * (1.0 - retained))
+        mse = discarded_energy / pixel_count
         psnr = float("inf") if mse == 0 else 20 * np.log10(255.0 / np.sqrt(mse))
-        
-        ssim = None
-        if ssim_metric:
-            try:
-                # Safe fallback if metric fails
-                ssim = float(ssim_metric(matrix.astype(np.float32), comp, data_range=255.0))
-            except Exception:
-                pass
-                
+
         return {
             'rank': k,
-            'energy': float(cumulative_energy[k-1]),
+            'energy': retained,
             'psnr': float(psnr),
-            'ssim': ssim
+            'ssim': None
         }
 
     def find_best_rank(min_k: int, targets: dict) -> dict:
-        # Check energy first as it's fast
-        energy_k = int(np.searchsorted(cumulative_energy, targets['energy']) + 1)
-        start_k = max(min_k, energy_k)
-        
-        step = max(1, round(max_rank * 0.02))
-        best_stats = None
-        
-        # Test ranks
-        for k in range(start_k, max_rank + 1, step):
-            stats = test_rank(k)
-            best_stats = stats
-            
-            if stats['energy'] < targets['energy']:
-                continue
-            if stats['ssim'] is not None and stats['ssim'] < targets['ssim']:
-                continue
-            if stats['psnr'] < targets.get('psnr', 0):
-                continue
-            
-            return stats
-            
-        return best_stats or test_rank(max_rank)
+        target_energy = float(targets['energy'])
+        target_psnr = float(targets.get('psnr', 0))
+
+        if target_psnr > 0:
+            target_mse = (255.0 ** 2) / (10 ** (target_psnr / 10.0))
+            max_discarded_energy = target_mse * pixel_count
+            psnr_energy = 1.0 - (max_discarded_energy / float(total_energy))
+            target_energy = max(target_energy, min(1.0, max(0.0, psnr_energy)))
+
+        energy_k = int(np.searchsorted(cumulative_energy, target_energy) + 1)
+        return stats_for_rank(max(min_k, energy_k))
 
     small_stats = find_best_rank(small_min, small_target)
     rec_stats = find_best_rank(rec_min, rec_target)
     hq_stats = find_best_rank(hq_min, hq_target)
     
-    reason = "Standard heuristic applied."
+    reason = "Balanced rank chosen from image quality targets."
     if is_medical_or_grayscale:
         reason = "Higher rank is recommended for medical-style grayscale images to preserve fine structures."
         

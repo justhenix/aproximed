@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download } from 'lucide-react';
 import { useI18n } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 export interface CompareImageMeta {
   width?: number | null;
@@ -49,6 +50,62 @@ const MetaRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+const SizeComparisonStrip = ({
+  originalBytes,
+  compressedBytes,
+  t,
+}: {
+  originalBytes?: number | null;
+  compressedBytes?: number | null;
+  t: (key: TranslationKey) => string;
+}) => {
+  if (typeof originalBytes !== 'number' || typeof compressedBytes !== 'number' || originalBytes <= 0 || compressedBytes <= 0) {
+    return null;
+  }
+
+  const largest = Math.max(originalBytes, compressedBytes);
+  const originalPct = Math.max(4, (originalBytes / largest) * 100);
+  const compressedPct = Math.max(4, (compressedBytes / largest) * 100);
+  const savedPct = ((originalBytes - compressedBytes) / originalBytes) * 100;
+  const isLarger = compressedBytes > originalBytes;
+
+  return (
+    <div className="md:col-span-2 rounded-2xl border border-gray-100 bg-white/80 p-4 shadow-sm">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <h4 className="text-sm font-bold text-gray-900">
+          {t('compare.sizeVisualTitle')}
+        </h4>
+        <span className={`text-xs font-bold ${isLarger ? 'text-amber-700' : 'text-emerald-700'}`}>
+          {isLarger
+            ? `${t('compare.outputLargerPrefix')} ${Math.abs(savedPct).toFixed(1)}%`
+            : `${savedPct.toFixed(1)}% ${t('compare.savedSuffix')}`}
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <div>
+          <div className="mb-1 flex justify-between text-[11px] font-semibold text-gray-500">
+            <span>{t('compare.originalLabel')}</span>
+            <span>{formatFileSize(originalBytes)}</span>
+          </div>
+          <div className="h-3 rounded-full bg-gray-100">
+            <div className="h-3 rounded-full bg-gray-500" style={{ width: `${originalPct}%` }} />
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 flex justify-between text-[11px] font-semibold text-gray-500">
+            <span>{t('compare.outputLabel')}</span>
+            <span>{formatFileSize(compressedBytes)}</span>
+          </div>
+          <div className="h-3 rounded-full bg-gray-100">
+            <div className={`h-3 rounded-full ${isLarger ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${compressedPct}%` }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const ImageCompare: React.FC<Props> = ({
   original,
   compressed,
@@ -57,7 +114,7 @@ export const ImageCompare: React.FC<Props> = ({
   originalMeta,
   compressedMeta,
 }) => {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
 
   const handleDownload = () => {
     if (!compressed) return;
@@ -75,22 +132,22 @@ export const ImageCompare: React.FC<Props> = ({
         <h3 className="font-bold text-gray-900 mb-3 text-center">{t('compare.original')}</h3>
         <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center text-gray-400 border border-gray-100 overflow-hidden relative shadow-inner">
           {original ? (
-            <img src={original} alt="Original" className="w-full h-full object-contain" />
+            <img src={original} alt={t('compare.originalAlt')} className="w-full h-full object-contain" />
           ) : (
-            <span className="text-sm font-medium px-2 text-center">{language === 'id' ? 'Tidak ada gambar yang diunggah' : 'No image uploaded'}</span>
+            <span className="text-sm font-medium px-2 text-center">{t('compare.noImage')}</span>
           )}
         </div>
         <div className="mt-3">
           <MetaRow
-            label={language === 'id' ? 'Resolusi' : 'Resolution'}
+            label={t('compare.resolution')}
             value={formatDimensions(originalMeta?.width, originalMeta?.height)}
           />
           <MetaRow
-            label={language === 'id' ? 'Ukuran File' : 'File Size'}
+            label={t('compare.fileSize')}
             value={formatFileSize(originalMeta?.sizeBytes)}
           />
           <MetaRow
-            label={language === 'id' ? 'Format' : 'Format'}
+            label={t('compare.format')}
             value={originalMeta?.format || '-'}
           />
         </div>
@@ -102,7 +159,7 @@ export const ImageCompare: React.FC<Props> = ({
           {compressed && !loading && (
             <button
               onClick={handleDownload}
-              title={language === 'id' ? 'Unduh gambar terkompresi' : 'Download compressed image'}
+              title={t('compare.downloadCompressed')}
               className="p-2 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg transition-colors shrink-0"
             >
               <Download className="w-4 h-4" />
@@ -117,26 +174,32 @@ export const ImageCompare: React.FC<Props> = ({
             </div>
           )}
           {compressed ? (
-            <img src={compressed} alt="Compressed" className="w-full h-full object-contain" />
+            <img src={compressed} alt={t('compare.compressedAlt')} className="w-full h-full object-contain" />
           ) : (
             !loading && <span className="text-sm font-medium px-2 text-center">{t('compare.awaitingCompression')}</span>
           )}
         </div>
         <div className="mt-3">
           <MetaRow
-            label={language === 'id' ? 'Resolusi' : 'Resolution'}
+            label={t('compare.resolution')}
             value={formatDimensions(compressedMeta?.width, compressedMeta?.height)}
           />
           <MetaRow
-            label={language === 'id' ? 'Ukuran File' : 'File Size'}
+            label={t('compare.fileSize')}
             value={formatFileSize(compressedMeta?.sizeBytes)}
           />
           <MetaRow
-            label={language === 'id' ? 'Format' : 'Format'}
+            label={t('compare.format')}
             value={compressedMeta?.format || '-'}
           />
         </div>
       </div>
+
+      <SizeComparisonStrip
+        originalBytes={originalMeta?.sizeBytes}
+        compressedBytes={compressedMeta?.sizeBytes}
+        t={t}
+      />
     </div>
   );
 };

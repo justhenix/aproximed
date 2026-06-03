@@ -82,7 +82,7 @@ export const DocsPage: React.FC = () => {
               <h3 className="font-bold text-gray-900 mb-1">{t('docs.metrics.svdRatio.title')}</h3>
               <p className="text-sm text-gray-600 mb-2">{t('docs.metrics.svdRatio.desc')}</p>
               <div className="bg-white rounded px-4 py-2 font-mono text-sm inline-block border border-gray-100">
-                Ratio = (m × n) / (k × (m + n + 1))
+                {t('docs.metrics.ratioFormulaLabel')} = (m × n) / (k × (m + n + 1))
               </div>
             </div>
 

@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
 import { useI18n } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 export type PresetKey = 'small' | 'recommended' | 'high';
+const PRESETS: PresetKey[] = ['small', 'recommended', 'high'];
+const PRESET_NOTE_KEYS: Record<PresetKey, TranslationKey> = {
+  small: 'rank.presetSmallNote',
+  recommended: 'rank.presetRecommendedNote',
+  high: 'rank.presetHighNote',
+};
+const PRESET_LABEL_KEYS: Record<PresetKey, TranslationKey> = {
+  small: 'rank.smallSize',
+  recommended: 'rank.recommended',
+  high: 'rank.highQuality',
+};
 
 interface Props {
   rank: number;
@@ -11,6 +23,7 @@ interface Props {
   loading: boolean;
   disabled: boolean;
   recommendedRank?: number | null;
+  recommendedReason?: string | null;
   selectedPreset: PresetKey | null;
   isGrayscale?: boolean;
   maxRank?: number;
@@ -23,6 +36,30 @@ const resolvePresetRanks = (recommendedRank: number, maxRank: number) => ({
   high: Math.min(Math.max(1, maxRank), Math.ceil(recommendedRank * 1.5)),
 });
 
+const resolveRankReason = (
+  reason: string | null | undefined,
+  t: (key: TranslationKey) => string,
+) => {
+  if (!reason) return t('rank.whyBody');
+
+  const normalized = reason.trim().toLowerCase();
+  if (normalized === 'balanced rank chosen from image quality targets.') return t('rank.reasonStandard');
+  if (normalized === 'higher rank is recommended for medical-style grayscale images to preserve fine structures.') {
+    return t('rank.reasonMedical');
+  }
+  if (normalized === 'adaptive rank selected per image from quality targets.') return t('rank.reasonAdaptive');
+  if (normalized === 'zero energy image') return t('rank.reasonZeroEnergy');
+
+  return reason;
+};
+
+const hasUsefulRankReason = (reason: string | null | undefined) => {
+  if (!reason) return false;
+
+  const normalized = reason.trim().toLowerCase();
+  return normalized !== 'balanced rank chosen from image quality targets.';
+};
+
 export const RankControls: React.FC<Props> = ({
   rank,
   onRankChange,
@@ -31,6 +68,7 @@ export const RankControls: React.FC<Props> = ({
   loading,
   disabled,
   recommendedRank,
+  recommendedReason,
   selectedPreset,
   maxRank = 200,
   isAnalyzing = false,
@@ -44,8 +82,9 @@ export const RankControls: React.FC<Props> = ({
   const isHighQuality = recommendedRank ? rank >= Math.max(1, Math.floor(recommendedRank * 1.2)) : false;
 
   const hint = selectedPreset
-    ? t(`rank.preset${selectedPreset.charAt(0).toUpperCase() + selectedPreset.slice(1)}Note` as any)
+    ? t(PRESET_NOTE_KEYS[selectedPreset])
     : t('rank.helper');
+  const showRankReason = hasUsefulRankReason(recommendedReason);
 
   const presetButtonClass = (preset: PresetKey) => {
     const base = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50';
@@ -72,7 +111,7 @@ export const RankControls: React.FC<Props> = ({
                 {t('rank.whatIs')}
             </button>
         </div>
-        <span className="font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-md text-sm whitespace-nowrap">Rank k: {rank}</span>
+        <span className="font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-md text-sm whitespace-nowrap">{t('rank.currentRank')} {rank}</span>
       </div>
 
       {showInfo && (
@@ -92,19 +131,30 @@ export const RankControls: React.FC<Props> = ({
       />
 
       {recommendedRank !== null && recommendedRank !== undefined && (
-        <div className="grid grid-cols-3 gap-2">
-          {['small', 'recommended', 'high'].map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => presetRanks && onPresetSelect(p as PresetKey, presetRanks[p as PresetKey])}
-              className={presetButtonClass(p as PresetKey)}
-              disabled={controlsDisabled}
-            >
-              {t(`rank.${p === 'small' ? 'smallSize' : p === 'recommended' ? 'recommended' : 'highQuality'}` as any)}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            {PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => presetRanks && onPresetSelect(p, presetRanks[p])}
+                className={presetButtonClass(p)}
+                disabled={controlsDisabled}
+              >
+                {t(PRESET_LABEL_KEYS[p])}
+              </button>
+            ))}
+          </div>
+
+          {showRankReason && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/50 px-3 py-2 text-xs text-blue-900">
+              <p className="font-bold">{t('rank.whyTitle')}</p>
+              <p className="mt-1 leading-snug">
+                {resolveRankReason(recommendedReason, t)}
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex items-start justify-between gap-2 min-h-6">

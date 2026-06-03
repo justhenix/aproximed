@@ -6,6 +6,8 @@ import { analyzeImage, compressImage } from '../lib/api';
 import type { CompressionResponse } from '../types/compression';
 import { useI18n } from '../i18n/I18nContext';
 
+const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -46,6 +48,7 @@ export const SingleImageMode: React.FC = () => {
 
   const [rank, setRank] = useState<number>(50);
   const [recommendedRank, setRecommendedRank] = useState<number | null>(null);
+  const [recommendedReason, setRecommendedReason] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
   const [isGrayscale, setIsGrayscale] = useState<boolean>(false);
   const [maxRank, setMaxRank] = useState<number>(200);
@@ -74,6 +77,7 @@ export const SingleImageMode: React.FC = () => {
     setCompressedImage(null);
     setCompressionResult(null);
     setRecommendedRank(null);
+    setRecommendedReason(null);
     setSelectedPreset(null);
     setIsGrayscale(false);
     setMaxRank(200);
@@ -85,6 +89,11 @@ export const SingleImageMode: React.FC = () => {
 
     if (!file.type.startsWith('image/')) {
       setError(t('single.errorNotImage'));
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setError(t('single.errorTooLarge'));
       return;
     }
 
@@ -105,6 +114,7 @@ export const SingleImageMode: React.FC = () => {
     setCompressionResult(null);
     setError(null);
     setRecommendedRank(null);
+    setRecommendedReason(null);
     setSelectedPreset(null);
     setIsGrayscale(false);
     setMaxRank(200);
@@ -125,6 +135,7 @@ export const SingleImageMode: React.FC = () => {
     try {
       const data = await analyzeImage(file);
       setRecommendedRank(data.recommended_rank);
+      setRecommendedReason(data.recommended_reason ?? null);
       setIsGrayscale(data.is_grayscale ?? false);
       if (typeof data.max_rank === 'number' && data.max_rank > 0) {
         setMaxRank(data.max_rank);
@@ -132,7 +143,7 @@ export const SingleImageMode: React.FC = () => {
       setRank(data.recommended_rank);
       setSelectedPreset('recommended');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Image analysis failed');
+      setError(err instanceof Error ? err.message : t('single.errorAnalysisFailed'));
     } finally {
       setIsAnalyzing(false);
     }
@@ -171,11 +182,12 @@ export const SingleImageMode: React.FC = () => {
       setCompressedImage(`data:${mimeType};base64,${data.compressed_image_base64}`);
       setCompressionResult(data);
       setRecommendedRank(data.recommended_rank);
+      setRecommendedReason(data.rank_reason ?? data.recommended_reason ?? null);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred');
+        setError(t('single.errorUnknown'));
       }
     } finally {
       setLoading(false);
@@ -258,7 +270,7 @@ export const SingleImageMode: React.FC = () => {
             <div className="glass-card p-4 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 justify-between border border-gray-100 shadow-sm rounded-2xl bg-white/80 min-w-0">
               <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
-                  {originalPreview && <img src={originalPreview} alt="Preview" className="w-full h-full object-cover" />}
+                  {originalPreview && <img src={originalPreview} alt={t('compare.originalAlt')} className="w-full h-full object-cover" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-gray-900 truncate">{originalFilename}</h3>
@@ -289,6 +301,7 @@ export const SingleImageMode: React.FC = () => {
               loading={loading}
               disabled={!imageFile}
               recommendedRank={recommendedRank}
+              recommendedReason={recommendedReason}
               selectedPreset={selectedPreset}
               isGrayscale={isGrayscale}
               maxRank={maxRank}

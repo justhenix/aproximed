@@ -18,10 +18,6 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location.pathname]);
-
   const navLinks: { key: TranslationKey; path: string }[] = [
     { key: 'nav.home', path: '/' },
     { key: 'nav.app', path: '/app' },
@@ -40,6 +36,7 @@ export const Navbar: React.FC = () => {
       >
         <div className="flex items-center justify-between w-full gap-2">
           <NavLink to="/" onClick={() => {
+            setIsMenuOpen(false);
             if (location.pathname === '/') {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
@@ -55,6 +52,7 @@ export const Navbar: React.FC = () => {
                   key={link.key}
                   to={link.path}
                   onClick={() => {
+                    setIsMenuOpen(false);
                     if (location.pathname === link.path) {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
@@ -94,6 +92,7 @@ export const Navbar: React.FC = () => {
             <NavLink
               to="/app"
               onClick={() => {
+                setIsMenuOpen(false);
                 if (location.pathname === '/app') {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
@@ -110,7 +109,7 @@ export const Navbar: React.FC = () => {
               onClick={() => setIsMenuOpen((prev) => !prev)}
               className="md:hidden p-2.5 rounded-xl border border-slate-200 bg-white/90 text-slate-700 hover:text-primary hover:border-primary/40 hover:bg-white transition"
             >
-              <span className="sr-only">Menu</span>
+              <span className="sr-only">{t('nav.menu')}</span>
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {isMenuOpen ? (
                   <>
@@ -139,6 +138,7 @@ export const Navbar: React.FC = () => {
                     key={link.key}
                     to={link.path}
                     onClick={() => {
+                      setIsMenuOpen(false);
                       if (location.pathname === link.path) {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }
@@ -178,6 +178,7 @@ export const Navbar: React.FC = () => {
               <NavLink
                 to="/app"
                 onClick={() => {
+                  setIsMenuOpen(false);
                   if (location.pathname === '/app') {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }

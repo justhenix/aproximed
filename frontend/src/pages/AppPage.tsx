@@ -1,26 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { healthCheck } from '../lib/api';
+import { getApiConfigurationError, healthCheck } from '../lib/api';
 import { SingleImageMode } from '../components/SingleImageMode';
 import { BatchAnalysisMode } from '../components/BatchAnalysisMode';
 import { useI18n } from '../i18n/I18nContext';
 
 export const AppPage: React.FC = () => {
-  const [apiStatus, setApiStatus] = useState<string>("checking");
+  const apiConfigurationError = getApiConfigurationError();
+  const [apiStatus, setApiStatus] = useState<string>(() => apiConfigurationError ? "misconfigured" : "checking");
   const [mode, setMode] = useState<'single' | 'batch'>('single');
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const apiDetail = apiConfigurationError ? t('app.apiMisconfiguredHelp') : (apiStatus === 'offline' ? t('app.apiOfflineHelp') : null);
 
   useEffect(() => {
+    if (apiConfigurationError) {
+      return;
+    }
+
     healthCheck().then(data => {
       if (data && (data.status === 'ok' || data.message)) {
         setApiStatus('online');
       } else {
         setApiStatus("offline");
       }
-    }).catch(() => setApiStatus("offline"));
-  }, []);
+    }).catch(() => {
+      setApiStatus("offline");
+    });
+  }, [apiConfigurationError, language]);
 
   const getApiStatusText = () => {
     if (apiStatus === 'online') return t('app.apiOnline');
+    if (apiStatus === 'misconfigured') return t('app.apiMisconfigured');
     if (apiStatus === 'offline') return t('app.apiOffline');
     return t('app.apiChecking');
   };
@@ -31,10 +40,15 @@ export const AppPage: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 text-balance">{t('app.title')}</h1>
         <p className="text-sm sm:text-base text-gray-600 text-pretty">{t('app.subtitle')}</p>
 
+        <div className="mx-auto mt-3 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs sm:text-sm font-medium text-amber-800">
+          {t('app.disclaimer')}
+        </div>
+
         <div className="mt-3 text-xs text-gray-500 font-mono flex items-center justify-center gap-2 bg-white/50 inline-flex px-3 py-1 rounded-full border border-gray-100">
-          <div className={`w-2 h-2 rounded-full ${apiStatus === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <div className={`w-2 h-2 rounded-full ${apiStatus === 'online' ? 'bg-green-500' : apiStatus === 'checking' ? 'bg-amber-500' : 'bg-red-500'}`}></div>
           {getApiStatusText()}
         </div>
+        {apiDetail && <p className="mt-2 text-xs text-red-600">{apiDetail}</p>}
       </header>
 
       <div className="grid grid-cols-2 bg-gray-100 p-1 rounded-xl w-full max-w-sm mx-auto shadow-inner mb-2 gap-1">

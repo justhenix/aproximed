@@ -8,10 +8,13 @@ export const API_BASE_URL =
 
 const buildApiUrl = (path: string) => {
   if (!API_BASE_URL) {
-    throw new Error("API URL not configured. Set VITE_API_URL.");
+    throw new Error("API URL not configured. Set VITE_API_URL to your deployed backend URL.");
   }
   return `${API_BASE_URL.replace(/\/+$/, "")}${path}`;
 };
+
+export const getApiConfigurationError = () =>
+  !API_BASE_URL ? "API URL not configured. Set VITE_API_URL to your deployed backend URL." : null;
 
 interface AnalyzeResponse {
   filename: string;
@@ -26,6 +29,7 @@ interface AnalyzeResponse {
   actual_ssim_at_recommended?: number | null;
   actual_psnr_at_recommended?: number | null;
   retained_energy_at_recommended?: number | null;
+  singular_values_preview?: number[];
   is_grayscale?: boolean;
 }
 
@@ -101,6 +105,7 @@ export const compressBatchImages = async (
   rank: number,
   includeCompressedZip = true,
   includeAllResultsZip = true,
+  adaptiveRank = false,
 ): Promise<BatchImageCompressionResponse> => {
   if (imageFiles.length === 0) {
     throw new Error("No images selected for batch compression");
@@ -110,7 +115,7 @@ export const compressBatchImages = async (
   imageFiles.forEach((file) => {
     formData.append("images", file);
   });
-  formData.append("rank", rank.toString());
+  formData.append("rank", adaptiveRank ? "0" : rank.toString());
   formData.append("include_report_csv", "true");
   formData.append("include_compressed_zip", includeCompressedZip ? "true" : "false");
   formData.append("include_all_results_zip", includeAllResultsZip ? "true" : "false");

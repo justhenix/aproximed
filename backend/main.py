@@ -25,17 +25,28 @@ from svd_utils import (
     calculate_compression_ratio,
     calculate_mse,
     calculate_psnr,
-    calculate_recommended_rank,
     calculate_rank_presets,
     calculate_retained_energy,
-    compress_matrix_svd,
+    calculate_singular_values,
+    decompose_matrix_svd,
     matrix_to_png_bytes,
     preprocess_image,
+    reconstruct_matrix_svd,
 )
 
 app = FastAPI(title="Aproximed API")
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
+MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024
+
+def _read_positive_int_env(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+MAX_SVD_DIMENSION = _read_positive_int_env("MAX_SVD_DIMENSION", 1024)
 
 def _is_image_grayscale(img: Image.Image) -> bool:
     if img.mode in ("L", "1", "I", "LA", "I;16", "F"):
@@ -96,36 +107,66 @@ def _safe_float_or_none(value: float | np.floating[Any] | None) -> float | None:
     return number
 
 
+def _validate_image_bytes(image_bytes: bytes) -> None:
+    if not image_bytes:
+        raise ValueError("Image file is empty")
+    if len(image_bytes) > MAX_IMAGE_UPLOAD_BYTES:
+        raise ValueError("Image file is larger than 10 MB")
+
+
+def _build_singular_values_preview(singular_values: np.ndarray, limit: int = 48) -> list[float]:
+    if singular_values.size == 0:
+        return []
+
+    if singular_values.size <= limit:
+        sampled = singular_values
+    else:
+        indexes = np.unique(
+            np.round(np.linspace(0, singular_values.size - 1, limit)).astype(int)
+        )
+        sampled = singular_values[indexes]
+
+    max_value = float(singular_values[0]) if singular_values[0] > 0 else 1.0
+    normalized = np.clip(sampled / max_value, 0, 1)
+    return [float(value) for value in normalized]
+
+
 def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple[dict[str, Any], bytes]:
     started = time.perf_counter()
 
-    if not image_bytes:
-        raise ValueError("Image file is empty")
+    _validate_image_bytes(image_bytes)
 
     try:
         with Image.open(io.BytesIO(image_bytes)) as img:
             original_width, original_height = img.size
             original_format = (img.format or "UNKNOWN").upper()
             is_gray = _is_image_grayscale(img)
-            matrix = preprocess_image(img)
+            matrix = preprocess_image(img, max_dimension=MAX_SVD_DIMENSION)
     except UnidentifiedImageError as exc:
         raise ValueError("Unsupported or invalid image file") from exc
 
-    max_rank = min(matrix.shape)
-    safe_rank = max(1, min(int(rank), max_rank))
-    compressed_matrix = compress_matrix_svd(matrix, safe_rank)
-
-    U, singular_values, Vt = np.linalg.svd(matrix, full_matrices=False)
-    mse = calculate_mse(matrix, compressed_matrix)
-    psnr = calculate_psnr(mse)
-    retained_energy = calculate_retained_energy(singular_values, safe_rank)
-    
+    U, singular_values, Vt = decompose_matrix_svd(matrix)
     presets = calculate_rank_presets(
         matrix, U, singular_values, Vt, 
         is_medical_or_grayscale=is_gray, 
         ssim_metric=structural_similarity_metric
     )
+
+    max_rank = min(matrix.shape)
     recommended_rank = presets["recommended_rank"]
+    requested_rank = int(rank)
+    rank_mode = "adaptive" if requested_rank <= 0 else "manual"
+    safe_rank = recommended_rank if rank_mode == "adaptive" else max(1, min(requested_rank, max_rank))
+    rank_reason = (
+        "Adaptive rank selected per image from quality targets."
+        if rank_mode == "adaptive"
+        else presets["recommended_reason"]
+    )
+
+    compressed_matrix = reconstruct_matrix_svd(U, singular_values, Vt, safe_rank)
+    mse = calculate_mse(matrix, compressed_matrix)
+    psnr = calculate_psnr(mse)
+    retained_energy = calculate_retained_energy(singular_values, safe_rank)
 
     ssim: float | None = None
     if structural_similarity_metric is not None:
@@ -159,6 +200,8 @@ def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple
         "message": "compression successful",
         "filename": filename,
         "rank": safe_rank,
+        "rank_mode": rank_mode,
+        "rank_reason": rank_reason,
         "recommended_rank": recommended_rank,
         "small_rank": presets["small_rank"],
         "high_quality_rank": presets["high_quality_rank"],
@@ -176,6 +219,8 @@ def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple
         "png_output_ratio": _safe_float_or_none(png_output_ratio),
         "compression_ratio": _safe_float_or_none(png_output_ratio),  # backward compat
         "retained_energy": _safe_float_or_none(retained_energy),
+        "singular_values_preview": _build_singular_values_preview(singular_values),
+        "max_rank": int(max_rank),
         "compressed_image_base64": compressed_image_base64,
         "compressed_mime_type": "image/png",
         "original_format": original_format,
@@ -214,6 +259,8 @@ def _build_report_csv(
             "compressed_height",
             "output_format",
             "rank_k",
+            "rank_mode",
+            "recommended_rank",
             "retained_energy_percent",
             "psnr",
             "ssim",
@@ -242,6 +289,8 @@ def _build_report_csv(
                 row.get("compressed_height", ""),
                 row.get("compressed_format", row.get("output_format", "")),
                 row.get("rank", row.get("rank_k", "")),
+                row.get("rank_mode", ""),
+                row.get("recommended_rank", ""),
                 retained_energy_percent if retained_energy_percent is not None else "",
                 row.get("psnr", ""),
                 row.get("ssim", ""),
@@ -316,6 +365,8 @@ async def _run_direct_batch_compression(
                     "compressed_height": None,
                     "compressed_format": None,
                     "rank": None,
+                    "rank_mode": None,
+                    "recommended_rank": None,
                     "retained_energy": None,
                     "psnr": None,
                     "ssim": None,
@@ -348,6 +399,8 @@ async def _run_direct_batch_compression(
                     "compressed_height": compressed_payload["compressed_height"],
                     "compressed_format": compressed_payload["compressed_format"],
                     "rank": compressed_payload["rank"],
+                    "rank_mode": compressed_payload["rank_mode"],
+                    "recommended_rank": compressed_payload["recommended_rank"],
                     "retained_energy": compressed_payload["retained_energy"],
                     "psnr": compressed_payload["psnr"],
                     "ssim": compressed_payload.get("ssim"),
@@ -374,6 +427,8 @@ async def _run_direct_batch_compression(
                     "compressed_height": None,
                     "compressed_format": None,
                     "rank": None,
+                    "rank_mode": None,
+                    "recommended_rank": None,
                     "retained_energy": None,
                     "psnr": None,
                     "ssim": None,
@@ -432,15 +487,16 @@ def health() -> dict[str, str]:
 async def analyze_image(image: UploadFile = File(...)) -> dict[str, Any]:
     try:
         image_bytes = await image.read()
+        _validate_image_bytes(image_bytes)
         with Image.open(io.BytesIO(image_bytes)) as img:
             is_gray = _is_image_grayscale(img)
-            matrix = preprocess_image(img)
+            matrix = preprocess_image(img, max_dimension=MAX_SVD_DIMENSION)
 
         max_rank = min(matrix.shape)
-        U, singular_values, Vt = np.linalg.svd(matrix, full_matrices=False)
+        singular_values = calculate_singular_values(matrix)
         
         presets = calculate_rank_presets(
-            matrix, U, singular_values, Vt, 
+            matrix, None, singular_values, None, 
             is_medical_or_grayscale=is_gray, 
             ssim_metric=structural_similarity_metric
         )
@@ -458,6 +514,7 @@ async def analyze_image(image: UploadFile = File(...)) -> dict[str, Any]:
             "actual_ssim_at_recommended": presets["actual_ssim_at_recommended"],
             "actual_psnr_at_recommended": presets["actual_psnr_at_recommended"],
             "retained_energy_at_recommended": presets["retained_energy_at_recommended"],
+            "singular_values_preview": _build_singular_values_preview(singular_values),
             "is_grayscale": is_gray
         }
     except Exception as exc:

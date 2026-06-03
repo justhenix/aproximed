@@ -1,6 +1,8 @@
 export interface CompressionResponse {
   compressed_image_base64: string;
   rank: number;
+  rank_mode?: 'manual' | 'adaptive';
+  rank_reason?: string | null;
   recommended_rank: number;
   small_rank?: number | null;
   high_quality_rank?: number | null;
@@ -19,6 +21,8 @@ export interface CompressionResponse {
   png_output_ratio: number | null;
   compression_ratio?: number | null;
   retained_energy: number | null;
+  singular_values_preview?: number[];
+  max_rank?: number;
   compressed_mime_type?: string;
   original_format?: string;
   compressed_format?: string;
@@ -54,6 +58,8 @@ export interface BatchImageResult {
   compressed_height: number | null;
   compressed_format: string | null;
   rank: number | null;
+  rank_mode: 'manual' | 'adaptive' | null;
+  recommended_rank: number | null;
   retained_energy: number | null;
   psnr: number | null;
   ssim: number | null;

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CompressionResponse } from '../types/compression';
 import { useI18n } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 interface Props {
   metrics: CompressionResponse | null;
@@ -36,11 +37,11 @@ const formatSignedBytes = (bytes: number, locale: string) => {
   return `${prefix}${formatBytesLocalized(Math.abs(bytes), locale)}`;
 };
 
-const getPsnrQuality = (psnr: number, language: 'en' | 'id') => {
-  if (psnr < 25) return language === 'id' ? 'Kualitas rendah' : 'Low quality';
-  if (psnr < 30) return language === 'id' ? 'Kualitas sedang' : 'Moderate quality';
-  if (psnr < 40) return language === 'id' ? 'Kualitas baik' : 'Good quality';
-  return language === 'id' ? 'Kualitas sangat baik' : 'Very good quality';
+const getPsnrQualityKey = (psnr: number): TranslationKey => {
+  if (psnr < 25) return 'metrics.psnr.low';
+  if (psnr < 30) return 'metrics.psnr.moderate';
+  if (psnr < 40) return 'metrics.psnr.good';
+  return 'metrics.psnr.veryGood';
 };
 
 const buildSizeStats = (metrics: CompressionResponse) => {
@@ -85,6 +86,69 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{children}</p>
 );
 
+const SingularValueChart = ({
+  values,
+  rank,
+  maxRank,
+  t,
+}: {
+  values?: number[];
+  rank: number;
+  maxRank?: number;
+  t: (key: TranslationKey) => string;
+}) => {
+  if (!values || values.length === 0) return null;
+
+  const safeMaxRank = Math.max(1, maxRank ?? values.length);
+  const rankIndex = Math.min(values.length - 1, Math.max(0, Math.round((rank / safeMaxRank) * (values.length - 1))));
+
+  return (
+    <section className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 min-w-0">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <SectionTitle>{t('metrics.singularVisualTitle')}</SectionTitle>
+        <span className="text-xs font-mono font-bold text-blue-700">k = {rank}</span>
+      </div>
+
+      <div className="mt-4 flex h-28 items-end gap-1 rounded-xl border border-white/80 bg-white/70 p-3">
+        {values.map((value, index) => {
+          const height = `${Math.max(4, Math.min(100, value * 100))}%`;
+          const isKept = index <= rankIndex;
+          return (
+            <div
+              key={`${value}-${index}`}
+              className={`flex-1 rounded-t-sm ${isKept ? 'bg-blue-600' : 'bg-gray-200'}`}
+              style={{ height }}
+              title={`${t('metrics.singularValueTitle')} ${(value * 100).toFixed(1)}%`}
+            />
+          );
+        })}
+      </div>
+
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 text-center text-xs font-semibold text-gray-700">
+        <div className="rounded-lg border border-gray-200 bg-white px-2 py-2 font-mono">A</div>
+        <span className="text-gray-400">{'->'}</span>
+        <div className="rounded-lg border border-blue-200 bg-white px-2 py-2 font-mono">U<sub>k</sub> Σ<sub>k</sub> V<sub>k</sub><sup>T</sup></div>
+        <span className="text-gray-400">{'->'}</span>
+        <div className="rounded-lg border border-emerald-200 bg-white px-2 py-2 font-mono">A<sub>k</sub></div>
+      </div>
+      <div className="mt-3 grid gap-2 rounded-xl border border-blue-100 bg-white/70 p-3 text-[11px] leading-snug text-gray-600 sm:grid-cols-3">
+        <p>
+          <span className="font-bold text-gray-800">{t('metrics.singularBarLabel')}: </span>
+          {t('metrics.singularBarDesc')}
+        </p>
+        <p>
+          <span className="font-bold text-blue-700">{t('metrics.singularKeptLabel')}: </span>
+          {t('metrics.singularKeptDesc')}
+        </p>
+        <p>
+          <span className="font-bold text-gray-800">{t('metrics.singularFlowLabel')}: </span>
+          {t('metrics.singularFlowDesc')}
+        </p>
+      </div>
+    </section>
+  );
+};
+
 export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
   const { t, language } = useI18n();
 
@@ -108,7 +172,7 @@ export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
     : 'N/A';
   const mseValue = isFiniteNumber(metrics.mse) ? metrics.mse.toFixed(2) : 'N/A';
   const psnrValue = isFiniteNumber(metrics.psnr)
-    ? `${formatDb(metrics.psnr, locale)} · ${getPsnrQuality(metrics.psnr, language)}`
+    ? `${formatDb(metrics.psnr, locale)} · ${t(getPsnrQualityKey(metrics.psnr))}`
     : 'N/A';
   const pngOutputLarger = pngOutputRatioValue !== null && pngOutputRatioValue < 1;
   const sizeChangeValue = sizeStats ? formatSignedBytes(sizeStats.sizeChangeBytes, locale) : null;
@@ -129,26 +193,33 @@ export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
       </h3>
 
       <div className="space-y-5 sm:space-y-6">
+        <SingularValueChart
+          values={metrics.singular_values_preview}
+          rank={metrics.rank}
+          maxRank={metrics.max_rank}
+          t={t}
+        />
+
         <section>
           <SectionTitle>{t('metrics.coreSection')}</SectionTitle>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <MetricCard
               title="MSE"
               value={mseValue}
-              helper={language === 'id' ? 'Rata-rata error kuadrat piksel.' : 'Average squared pixel error.'}
+              helper={t('metrics.mseHelper')}
             />
 
             <MetricCard
               title="PSNR"
               value={psnrValue}
-              helper={language === 'id' ? 'Semakin tinggi biasanya semakin baik.' : 'Higher is usually better.'}
+              helper={t('metrics.psnrHelper')}
             />
 
             {ssimAvailable && (
               <MetricCard
                 title="SSIM"
                 value={metrics.ssim!.toFixed(4)}
-                helper={language === 'id' ? 'Kemiripan struktural (0-1).' : 'Structural similarity score (0-1).'}
+                helper={t('metrics.ssimHelper')}
               />
             )}
 
@@ -185,18 +256,14 @@ export const MetricsPanel: React.FC<Props> = ({ metrics }) => {
             />
 
             <MetricCard
-              title={language === 'id' ? 'Perubahan Ukuran' : 'Size Change'}
+              title={t('metrics.sizeChangeTitle')}
               value={sizeChangeValue ?? 'N/A'}
               valueClassName={sizeChangeTone}
-              helper={
-                language === 'id'
-                  ? 'Positif = output lebih besar. Negatif = output lebih kecil.'
-                  : 'Positive means larger output. Negative means smaller output.'
-              }
+              helper={t('metrics.sizeChangeHelper')}
             />
 
             <MetricCard
-              title={language === 'id' ? 'Waktu Proses' : 'Processing Time'}
+              title={t('metrics.processingTitle')}
               value={processingMsAvailable ? `${metrics.processing_time_ms!.toFixed(0)} ms` : 'N/A'}
               helper={t('metrics.processingHelper')}
             />
