@@ -26,11 +26,11 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-0 px-0 transition-all duration-500">
+    <div className={`fixed top-0 left-0 right-0 z-50 flex justify-center pt-0 transition-all duration-500 ${isScrolled ? 'px-4 md:px-8' : 'px-0'}`}>
       <nav
         className={`flex flex-col w-full gap-2 transition-all duration-500 ${
           isScrolled
-            ? 'max-w-4xl mx-auto glass px-3 sm:px-6 py-2.5 sm:py-3 rounded-b-2xl border-x border-b'
+            ? 'max-w-6xl mx-auto glass px-3 sm:px-6 py-2.5 sm:py-3 rounded-b-2xl border-x border-b'
             : 'max-w-6xl mx-auto bg-white/0 px-4 sm:px-6 md:px-8 py-3 sm:py-5 border border-transparent'
         }`}
       >
