@@ -1,6 +1,13 @@
-# Aproximed
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./misc/dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./misc/light.svg">
+    <img alt="Aproximed banner" src="./misc/light.svg">
+  </picture>
+</p>
 
-Aproximed is a web prototype for **SVD-based X-ray image compression**. Upload image → choose rank-k or use recommended rank → compare original vs reconstructed image → inspect compression metrics.
+Aproximed is a web prototype for **SVD-based X-ray image compression**. 
+- Upload image → choose rank-k or use recommended rank → compare original vs reconstructed image → inspect compression metrics.
 
 > Educational prototype only. Not for medical diagnosis.
 
