@@ -102,6 +102,8 @@ bun run build
 - `rank <= 0` enables backend adaptive rank mode.
 - CSV/ZIP are generated outputs for batch compression, not upload inputs.
 
-## Credit
+## Acknowledgement
 
-Created by Gamma Rasyad | L0125013 | 2026
+X-ray images provided by the [NIH Clinical Center](https://www.kaggle.com/datasets/nih-chest-xrays/data)
+
+Dataset Citation: Wang X, Peng Y, Lu L, Lu Z, Bagheri M, Summers RM. "ChestX-ray8: Hospital-scale Chest X-ray Database and Benchmarks on Weakly-Supervised Classification and Localization of Common Thorax Diseases." IEEE CVPR 2017.
