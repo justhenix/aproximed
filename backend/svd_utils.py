@@ -215,14 +215,48 @@ def matrix_to_base64_png(matrix: np.ndarray) -> str:
     return base64_str
 
 
-def matrix_to_png_bytes(matrix: np.ndarray) -> bytes:
+def matrix_to_image(matrix: np.ndarray) -> Image.Image:
     clipped_matrix = np.clip(matrix, 0, 255)
     uint8_matrix = clipped_matrix.astype(np.uint8)
-
-    image = Image.fromarray(uint8_matrix, mode="L")
     # if complains with deprecation warning, use:
     # image = Image.fromarray(uint8_matrix)
+    return Image.fromarray(uint8_matrix, mode="L")
 
+
+def _encode_image(image: Image.Image, image_format: str, **save_options) -> bytes:
     buffer = io.BytesIO()
-    image.save(buffer, format="PNG")
+    image.save(buffer, format=image_format, **save_options)
     return buffer.getvalue()
+
+
+def matrix_to_png_bytes(matrix: np.ndarray) -> bytes:
+    image = matrix_to_image(matrix)
+    return _encode_image(image, "PNG", optimize=True, compress_level=9)
+
+
+def matrix_to_encoded_bytes(matrix: np.ndarray, original_size: int | None = None) -> tuple[bytes, str, str]:
+    image = matrix_to_image(matrix)
+    png_bytes = _encode_image(image, "PNG", optimize=True, compress_level=9)
+
+    if original_size is None or len(png_bytes) < original_size:
+        return png_bytes, "PNG", "image/png"
+
+    candidates: list[tuple[bytes, str, str]] = [(png_bytes, "PNG", "image/png")]
+    for quality in (85, 75, 65):
+        try:
+            candidates.append((
+                _encode_image(image, "WEBP", quality=quality, method=6),
+                "WEBP",
+                "image/webp",
+            ))
+        except OSError:
+            break
+
+    for quality in (85, 75, 65):
+        candidates.append((
+            _encode_image(image, "JPEG", quality=quality, optimize=True, progressive=True),
+            "JPEG",
+            "image/jpeg",
+        ))
+
+    return min(candidates, key=lambda candidate: len(candidate[0]))

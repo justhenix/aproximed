@@ -29,7 +29,7 @@ from svd_utils import (
     calculate_retained_energy,
     calculate_singular_values,
     decompose_matrix_svd,
-    matrix_to_png_bytes,
+    matrix_to_encoded_bytes,
     preprocess_image,
     reconstruct_matrix_svd,
 )
@@ -181,11 +181,14 @@ def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple
         except Exception:
             ssim = None
 
-    compressed_png_bytes = matrix_to_png_bytes(compressed_matrix)
-    compressed_image_base64 = base64.b64encode(compressed_png_bytes).decode("utf-8")
-
     original_size = len(image_bytes)
-    compressed_size = len(compressed_png_bytes)
+    compressed_image_bytes, compressed_format, compressed_mime_type = matrix_to_encoded_bytes(
+        compressed_matrix,
+        original_size=original_size,
+    )
+    compressed_image_base64 = base64.b64encode(compressed_image_bytes).decode("utf-8")
+
+    compressed_size = len(compressed_image_bytes)
     bytes_saved = original_size - compressed_size
     size_reduction_pct = ((bytes_saved / original_size) * 100) if original_size > 0 else None
 
@@ -222,9 +225,9 @@ def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple
         "singular_values_preview": _build_singular_values_preview(singular_values),
         "max_rank": int(max_rank),
         "compressed_image_base64": compressed_image_base64,
-        "compressed_mime_type": "image/png",
+        "compressed_mime_type": compressed_mime_type,
         "original_format": original_format,
-        "compressed_format": "PNG",
+        "compressed_format": compressed_format,
         "original_width": int(original_width),
         "original_height": int(original_height),
         "compressed_width": int(width),
@@ -235,7 +238,7 @@ def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple
         "size_reduction_pct": _safe_float_or_none(size_reduction_pct),
         "processing_time_ms": _safe_float_or_none(elapsed_ms),
     }
-    return payload, compressed_png_bytes
+    return payload, compressed_image_bytes
 
 
 def _build_report_csv(
@@ -309,13 +312,24 @@ def _build_report_csv(
     return output.getvalue()
 
 
-def _build_compressed_name(original_name: str, used_names: set[str]) -> str:
+def _compressed_extension(compressed_format: str | None) -> str:
+    extension_by_format = {
+        "JPEG": "jpg",
+        "JPG": "jpg",
+        "PNG": "png",
+        "WEBP": "webp",
+    }
+    return extension_by_format.get((compressed_format or "PNG").upper(), "png")
+
+
+def _build_compressed_name(original_name: str, used_names: set[str], compressed_format: str | None = None) -> str:
     original_stem = _sanitize_filename_stem(PurePosixPath(original_name).stem)
-    candidate = f"{original_stem}_compressed.png"
+    extension = _compressed_extension(compressed_format)
+    candidate = f"{original_stem}_compressed.{extension}"
     suffix = 2
 
     while candidate.lower() in used_names:
-        candidate = f"{original_stem}_compressed_{suffix}.png"
+        candidate = f"{original_stem}_compressed_{suffix}.{extension}"
         suffix += 1
 
     used_names.add(candidate.lower())
@@ -378,7 +392,7 @@ async def _run_direct_batch_compression(
 
         try:
             image_bytes = await image.read()
-            compressed_payload, compressed_png_bytes = _compress_image_bytes(
+            compressed_payload, compressed_image_bytes = _compress_image_bytes(
                 image_bytes=image_bytes,
                 filename=filename,
                 rank=rank,
@@ -409,8 +423,12 @@ async def _run_direct_batch_compression(
                 }
             )
 
-            zip_name = _build_compressed_name(filename, compressed_used_names)
-            compressed_members.append((f"compressed/{zip_name}", compressed_png_bytes))
+            zip_name = _build_compressed_name(
+                filename,
+                compressed_used_names,
+                compressed_payload.get("compressed_format"),
+            )
+            compressed_members.append((f"compressed/{zip_name}", compressed_image_bytes))
         except Exception as exc:
             per_image_results.append(
                 {
