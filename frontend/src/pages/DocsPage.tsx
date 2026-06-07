@@ -1,6 +1,54 @@
 import React from 'react';
 import { useI18n } from '../i18n/I18nContext';
 
+type InlineToken = {
+  match: string;
+  text: string;
+  className?: string;
+  strong?: boolean;
+};
+
+const renderInlineTokens = (text: string, tokens: InlineToken[]) => {
+  const sortedTokens = [...tokens].sort((a, b) => b.match.length - a.match.length);
+  const nodes: React.ReactNode[] = [];
+  let index = 0;
+
+  while (index < text.length) {
+    const token = sortedTokens.find((item) => text.startsWith(item.match, index));
+
+    if (!token) {
+      nodes.push(text[index]);
+      index += 1;
+      continue;
+    }
+
+    const leadingSpace = token.match.match(/^\s*/)?.[0] ?? '';
+    const trailingSpace = token.match.match(/\s*$/)?.[0] ?? '';
+    const element = (
+      <span className={token.className} key={`${token.match}-${index}`}>
+        {token.strong ? <strong>{token.text}</strong> : token.text}
+      </span>
+    );
+
+    nodes.push(leadingSpace, element, trailingSpace);
+    index += token.match.length;
+  }
+
+  return nodes;
+};
+
+const emphasizePrefix = (text: string) => {
+  const separatorIndex = text.indexOf(':');
+  if (separatorIndex === -1) return text;
+
+  return (
+    <>
+      <strong>{text.slice(0, separatorIndex + 1)}</strong>
+      {text.slice(separatorIndex + 1)}
+    </>
+  );
+};
+
 export const DocsPage: React.FC = () => {
   const { t } = useI18n();
   return (
@@ -33,29 +81,39 @@ export const DocsPage: React.FC = () => {
           <section id="matrix" className="scroll-mt-32">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('docs.matrix.title')}</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <span dangerouslySetInnerHTML={{ __html: t('docs.matrix.desc').replace('m × n', '<span class="font-mono">m × n</span>').replace(' A.', ' <span class="font-mono font-bold">A</span>.').replace('A(i,j)', '<span class="font-mono">A(i,j)</span>').replace(' i ', ' <span class="font-mono">i</span> ').replace(' j.', ' <span class="font-mono">j</span>.') }} />
+              {renderInlineTokens(t('docs.matrix.desc'), [
+                { match: 'm × n', text: 'm × n', className: 'font-mono' },
+                { match: 'A(i,j)', text: 'A(i,j)', className: 'font-mono' },
+                { match: ' A.', text: 'A.', className: 'font-mono font-bold' },
+                { match: ' i ', text: 'i', className: 'font-mono' },
+                { match: ' j.', text: 'j.', className: 'font-mono' },
+              ])}
             </p>
           </section>
 
           <section id="svd" className="scroll-mt-32">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('docs.svd.title')}</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <span dangerouslySetInnerHTML={{ __html: t('docs.svd.desc').replace(' A ', ' <span class="font-mono font-bold">A</span> ') }} />
+              {renderInlineTokens(t('docs.svd.desc'), [
+                { match: ' A ', text: 'A', className: 'font-mono font-bold' },
+              ])}
             </p>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center font-mono text-xl text-gray-800 my-6 shadow-inner">
               A = U Σ Vᵀ
             </div>
             <ul className="list-disc pl-5 text-gray-700 space-y-2">
-              <li><span dangerouslySetInnerHTML={{ __html: t('docs.svd.u').replace('U:', '<strong>U</strong>:').replace('m × m', '<span class="font-mono">m × m</span>') }} /></li>
-              <li><span dangerouslySetInnerHTML={{ __html: t('docs.svd.sigma').replace('Σ:', '<strong>Σ</strong>:').replace('m × n', '<span class="font-mono">m × n</span>') }} /></li>
-              <li><span dangerouslySetInnerHTML={{ __html: t('docs.svd.v').replace('Vᵀ:', '<strong>Vᵀ</strong>:').replace('n × n', '<span class="font-mono">n × n</span>') }} /></li>
+              <li>{emphasizePrefix(t('docs.svd.u'))}</li>
+              <li>{emphasizePrefix(t('docs.svd.sigma'))}</li>
+              <li>{emphasizePrefix(t('docs.svd.v'))}</li>
             </ul>
           </section>
 
           <section id="rank-k" className="scroll-mt-32">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('docs.rank.title')}</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <span dangerouslySetInnerHTML={{ __html: t('docs.rank.desc1').replace(' k ', ' <strong>k</strong> ') }} />
+              {renderInlineTokens(t('docs.rank.desc1'), [
+                { match: ' k ', text: 'k', strong: true },
+              ])}
             </p>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center font-mono text-xl text-gray-800 my-6 shadow-inner">
               Aₖ = Uₖ Σₖ Vₖᵀ

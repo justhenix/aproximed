@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import csv
 import io
+import logging
 import os
 import re
 import time
@@ -35,6 +36,7 @@ from svd_utils import (
 )
 
 app = FastAPI(title="Aproximed API")
+logger = logging.getLogger(__name__)
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -47,6 +49,10 @@ def _read_positive_int_env(name: str, default: int) -> int:
     return value if value > 0 else default
 
 MAX_SVD_DIMENSION = _read_positive_int_env("MAX_SVD_DIMENSION", 1024)
+MAX_BATCH_IMAGE_COUNT = _read_positive_int_env("MAX_BATCH_IMAGE_COUNT", 20)
+MAX_BATCH_UPLOAD_BYTES = _read_positive_int_env("MAX_BATCH_UPLOAD_BYTES", 50 * 1024 * 1024)
+MAX_DECODED_IMAGE_PIXELS = _read_positive_int_env("MAX_DECODED_IMAGE_PIXELS", 25_000_000)
+Image.MAX_IMAGE_PIXELS = MAX_DECODED_IMAGE_PIXELS
 
 def _is_image_grayscale(img: Image.Image) -> bool:
     if img.mode in ("L", "1", "I", "LA", "I;16", "F"):
@@ -78,9 +84,9 @@ def get_allowed_origins() -> list[str]:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_allowed_origins(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -114,6 +120,14 @@ def _validate_image_bytes(image_bytes: bytes) -> None:
         raise ValueError("Image file is larger than 10 MB")
 
 
+def _validate_image_dimensions(img: Image.Image) -> None:
+    width, height = img.size
+    if width <= 0 or height <= 0:
+        raise ValueError("Invalid image dimensions")
+    if width * height > MAX_DECODED_IMAGE_PIXELS:
+        raise ValueError("Image dimensions are too large")
+
+
 def _build_singular_values_preview(singular_values: np.ndarray, limit: int = 48) -> list[float]:
     if singular_values.size == 0:
         return []
@@ -138,6 +152,7 @@ def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple
 
     try:
         with Image.open(io.BytesIO(image_bytes)) as img:
+            _validate_image_dimensions(img)
             original_width, original_height = img.size
             original_format = (img.format or "UNKNOWN").upper()
             is_gray = _is_image_grayscale(img)
@@ -353,11 +368,14 @@ async def _run_direct_batch_compression(
 ) -> dict[str, Any]:
     if not images:
         raise ValueError("At least one image file is required")
+    if len(images) > MAX_BATCH_IMAGE_COUNT:
+        raise ValueError(f"Batch cannot contain more than {MAX_BATCH_IMAGE_COUNT} files")
 
     per_image_results: list[dict[str, Any]] = []
     skipped_files: list[dict[str, str]] = []
     compressed_members: list[tuple[str, bytes]] = []
     compressed_used_names: set[str] = set()
+    total_uploaded_bytes = 0
 
     for index, image in enumerate(images, start=1):
         filename = (image.filename or f"image_{index}.bin").strip() or f"image_{index}.bin"
@@ -392,6 +410,9 @@ async def _run_direct_batch_compression(
 
         try:
             image_bytes = await image.read()
+            total_uploaded_bytes += len(image_bytes)
+            if total_uploaded_bytes > MAX_BATCH_UPLOAD_BYTES:
+                raise ValueError("Batch upload is too large")
             compressed_payload, compressed_image_bytes = _compress_image_bytes(
                 image_bytes=image_bytes,
                 filename=filename,
@@ -451,7 +472,7 @@ async def _run_direct_batch_compression(
                     "psnr": None,
                     "ssim": None,
                     "processing_time_ms": None,
-                    "error": str(exc),
+                    "error": "Processing failed",
                 }
             )
 
@@ -507,6 +528,7 @@ async def analyze_image(image: UploadFile = File(...)) -> dict[str, Any]:
         image_bytes = await image.read()
         _validate_image_bytes(image_bytes)
         with Image.open(io.BytesIO(image_bytes)) as img:
+            _validate_image_dimensions(img)
             is_gray = _is_image_grayscale(img)
             matrix = preprocess_image(img, max_dimension=MAX_SVD_DIMENSION)
 
@@ -536,7 +558,8 @@ async def analyze_image(image: UploadFile = File(...)) -> dict[str, Any]:
             "is_grayscale": is_gray
         }
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.exception("Image analysis failed")
+        raise HTTPException(status_code=400, detail="Image analysis failed") from exc
 
 
 @app.post("/compress")
@@ -547,7 +570,8 @@ async def compress_image(image: UploadFile = File(...), rank: int = Form(...)) -
         payload, _ = _compress_image_bytes(image_bytes=image_bytes, filename=filename, rank=rank)
         return payload
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.exception("Image compression failed")
+        raise HTTPException(status_code=400, detail="Image compression failed") from exc
 
 
 @app.post("/batch/images")
@@ -567,7 +591,8 @@ async def compress_batch_uploaded_images(
             include_all_results_zip=include_all_results_zip,
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.exception("Batch compression failed")
+        raise HTTPException(status_code=400, detail="Batch compression failed") from exc
 
 
 if __name__ == "__main__":
