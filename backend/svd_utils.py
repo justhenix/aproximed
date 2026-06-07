@@ -234,29 +234,26 @@ def matrix_to_png_bytes(matrix: np.ndarray) -> bytes:
     return _encode_image(image, "PNG", optimize=True, compress_level=9)
 
 
-def matrix_to_encoded_bytes(matrix: np.ndarray, original_size: int | None = None) -> tuple[bytes, str, str]:
+def matrix_to_encoded_bytes(
+    matrix: np.ndarray,
+    original_size: int | None = None,
+    preferred_format: str | None = None,
+) -> tuple[bytes, str, str]:
     image = matrix_to_image(matrix)
-    png_bytes = _encode_image(image, "PNG", optimize=True, compress_level=9)
+    normalized_format = (preferred_format or "PNG").upper()
 
-    if original_size is None or len(png_bytes) < original_size:
-        return png_bytes, "PNG", "image/png"
-
-    candidates: list[tuple[bytes, str, str]] = [(png_bytes, "PNG", "image/png")]
-    for quality in (85, 75, 65):
-        try:
-            candidates.append((
-                _encode_image(image, "WEBP", quality=quality, method=6),
-                "WEBP",
-                "image/webp",
-            ))
-        except OSError:
-            break
-
-    for quality in (85, 75, 65):
-        candidates.append((
-            _encode_image(image, "JPEG", quality=quality, optimize=True, progressive=True),
+    if normalized_format in {"JPEG", "JPG"}:
+        return (
+            _encode_image(image, "JPEG", quality=90, optimize=True, progressive=True),
             "JPEG",
             "image/jpeg",
-        ))
+        )
 
-    return min(candidates, key=lambda candidate: len(candidate[0]))
+    if normalized_format == "WEBP":
+        return (
+            _encode_image(image, "WEBP", quality=90, method=6),
+            "WEBP",
+            "image/webp",
+        )
+
+    return _encode_image(image, "PNG", optimize=True, compress_level=9), "PNG", "image/png"

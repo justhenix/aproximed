@@ -200,6 +200,7 @@ def _compress_image_bytes(image_bytes: bytes, filename: str, rank: int) -> tuple
     compressed_image_bytes, compressed_format, compressed_mime_type = matrix_to_encoded_bytes(
         compressed_matrix,
         original_size=original_size,
+        preferred_format=original_format,
     )
     compressed_image_base64 = base64.b64encode(compressed_image_bytes).decode("utf-8")
 
