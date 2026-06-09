@@ -90,7 +90,7 @@ export const translations = {
 
     'rank.title': 'Compression Rank (k)',
     'rank.whatIs': 'What is rank?',
-    'rank.whatIsBody': 'Rank determines how many SVD components are kept. Lower rank gives stronger compression but can blur details.',
+    'rank.whatIsBody': 'Rank controls image detail, not guaranteed final file size. Final file size depends on PNG/JPEG/WebP encoder.',
     'rank.helper': 'Lower rank = stronger compression, more blur. Higher rank = clearer image, larger output.',
     'rank.currentRank': 'Rank k:',
     'rank.recommended': 'Recommended',
@@ -365,7 +365,7 @@ export const translations = {
 
     'rank.title': 'Rank Kompresi (k)',
     'rank.whatIs': 'Rank itu apa?',
-    'rank.whatIsBody': 'Rank menentukan berapa banyak bagian SVD yang dipakai. Rank rendah membuat kompresi lebih kuat, tetapi detail bisa blur.',
+    'rank.whatIsBody': 'Rank mengontrol detail gambar, bukan jaminan ukuran file akhir. Ukuran akhir bergantung pada encoder PNG/JPEG/WebP.',
     'rank.helper': 'Rank lebih rendah = kompresi lebih kuat, blur lebih besar. Rank lebih tinggi = gambar lebih jelas, output lebih besar.',
     'rank.currentRank': 'Rank k:',
     'rank.recommended': 'Saran',
