@@ -72,6 +72,7 @@ export const translations = {
     'app.apiMisconfigured': 'API Not Configured',
     'app.apiChecking': 'Checking API...',
     'app.disclaimer': 'Educational compression demo only. Not for clinical diagnosis or medical decision-making.',
+    'app.dismissDisclaimer': 'Dismiss disclaimer',
     'app.apiOfflineHelp': 'Run the local backend or set VITE_API_URL.',
     'app.apiMisconfiguredHelp': 'API URL not configured. Set VITE_API_URL to your deployed backend URL.',
 
@@ -347,6 +348,7 @@ export const translations = {
     'app.apiMisconfigured': 'API Belum Dikonfigurasi',
     'app.apiChecking': 'Mengecek API...',
     'app.disclaimer': 'Demo kompresi edukatif saja. Bukan untuk diagnosis klinis atau pengambilan keputusan medis.',
+    'app.dismissDisclaimer': 'Tutup pemberitahuan',
     'app.apiOfflineHelp': 'Jalankan server lokal atau isi VITE_API_URL.',
     'app.apiMisconfiguredHelp': 'URL API belum diatur. Isi VITE_API_URL dengan URL backend.',
 

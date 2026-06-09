@@ -8,6 +8,15 @@ export const AppPage: React.FC = () => {
   const apiConfigurationError = getApiConfigurationError();
   const [apiStatus, setApiStatus] = useState<string>(() => apiConfigurationError ? "misconfigured" : "checking");
   const [mode, setMode] = useState<'single' | 'batch'>('single');
+  const [showDisclaimer, setShowDisclaimer] = useState(() => {
+    if (typeof window === 'undefined') return true;
+
+    try {
+      return window.localStorage.getItem('aproximed:appDisclaimerDismissed') !== '1';
+    } catch {
+      return true;
+    }
+  });
   const { t, language } = useI18n();
   const apiDetail = apiConfigurationError ? t('app.apiMisconfiguredHelp') : (apiStatus === 'offline' ? t('app.apiOfflineHelp') : null);
 
@@ -27,6 +36,16 @@ export const AppPage: React.FC = () => {
     });
   }, [apiConfigurationError, language]);
 
+  const dismissDisclaimer = () => {
+    setShowDisclaimer(false);
+
+    try {
+      window.localStorage.setItem('aproximed:appDisclaimerDismissed', '1');
+    } catch {
+      // Ignore storage failures.
+    }
+  };
+
   const getApiStatusText = () => {
     if (apiStatus === 'online') return t('app.apiOnline');
     if (apiStatus === 'misconfigured') return t('app.apiMisconfigured');
@@ -40,9 +59,22 @@ export const AppPage: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 text-balance">{t('app.title')}</h1>
         <p className="text-sm sm:text-base text-gray-600 text-pretty">{t('app.subtitle')}</p>
 
-        <div className="mx-auto mt-3 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs sm:text-sm font-medium text-amber-800">
-          {t('app.disclaimer')}
-        </div>
+        {showDisclaimer && (
+          <div className="mx-auto mt-3 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 pr-12 text-xs sm:text-sm font-medium text-amber-800 relative">
+            <span>{t('app.disclaimer')}</span>
+            <button
+              type="button"
+              onClick={dismissDisclaimer}
+              aria-label={t('app.dismissDisclaimer')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-amber-700 hover:bg-amber-100 hover:text-amber-900 transition-colors"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M5 5l10 10" />
+                <path d="M15 5L5 15" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         <div className="mt-3 text-xs text-gray-500 font-mono flex items-center justify-center gap-2 bg-white/50 inline-flex px-3 py-1 rounded-full border border-gray-100">
           <div className={`w-2 h-2 rounded-full ${apiStatus === 'online' ? 'bg-green-500' : apiStatus === 'checking' ? 'bg-amber-500' : 'bg-red-500'}`}></div>
